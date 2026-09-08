@@ -1,0 +1,48 @@
+{
+  "name": "CampusRecover AI - University Lost & Found SaaS",
+  "short_name": "CampusRecover",
+  "description": "AI-powered multimodal lost and found recovery ecosystem for university campuses.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#faf8ff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Report Lost Item",
+      "short_name": "Lost",
+      "description": "Report an item you lost on campus",
+      "url": "/dashboard/report-lost",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Report Found Item",
+      "short_name": "Found",
+      "description": "Report an item you found on campus",
+      "url": "/dashboard/report-found",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "AI Matches",
+      "short_name": "Matches",
+      "description": "Check automated AI lost & found matches",
+      "url": "/dashboard/ai-match",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "description": "Create stunning designs effortlessly with an intuitive interface that leverages AI to enhance creativity and streamline the design process for professionals.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

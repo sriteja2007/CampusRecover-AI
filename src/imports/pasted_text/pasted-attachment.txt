@@ -1,0 +1,507 @@
+You are a Senior Product Designer and Design QA Engineer.
+
+Analyze the entire Figma file for the "CampusRecover AI" project.
+
+Do NOT assume the design is complete.
+
+Perform a complete design audit.
+
+====================================================
+
+STEP 1 — VERIFY ALL PAGES
+
+Check whether each of these pages exists.
+
+If a page is missing, automatically create it.
+
+If a page is incomplete, complete it.
+
+Required Pages
+
+✓ Splash Screen
+
+✓ Welcome Screen
+
+✓ Onboarding
+
+✓ Login
+
+✓ Sign Up
+
+✓ Forgot Password
+
+✓ OTP Verification
+
+✓ Email Verification
+
+✓ Reset Password
+
+✓ Home
+
+✓ Dashboard
+
+✓ Lost Items
+
+✓ Found Items
+
+✓ Report Lost Item
+
+✓ Report Found Item
+
+✓ Item Details
+
+✓ AI Match Result
+
+✓ AI Analysis
+
+✓ Search Results
+
+✓ Notifications
+
+✓ Chat
+
+✓ Voice Call
+
+✓ Video Call
+
+✓ Maps
+
+✓ Campus Office
+
+✓ Office Inventory
+
+✓ QR Verification
+
+✓ OTP Collection
+
+✓ Claim Success
+
+✓ Claim History
+
+✓ Profile
+
+✓ Edit Profile
+
+✓ Settings
+
+✓ Security Settings
+
+✓ Privacy
+
+✓ Help Center
+
+✓ FAQ
+
+✓ About
+
+✓ Analytics Dashboard
+
+✓ Admin Dashboard
+
+✓ User Management
+
+✓ Campus Staff Dashboard
+
+✓ Faculty Dashboard
+
+✓ Security Dashboard
+
+✓ Audit Logs
+
+✓ Fraud Detection
+
+✓ AI Logs
+
+✓ Reports
+
+✓ 404 Page
+
+✓ Empty States
+
+✓ Loading Screens
+
+✓ Success Screens
+
+✓ Error Screens
+
+====================================================
+
+STEP 2 — VERIFY AUTHENTICATION FLOW
+
+Check whether these screens exist.
+
+Login
+
+Google Login
+
+Email Login
+
+Password Login
+
+Sign Up
+
+Forgot Password
+
+Reset Password
+
+Email Verification
+
+OTP Verification
+
+Create Profile
+
+Role Selection
+
+Student
+
+Faculty
+
+Security
+
+Admin
+
+If missing, create them.
+
+====================================================
+
+STEP 3 — VERIFY NAVIGATION
+
+Verify navigation works between every page.
+
+No dead ends.
+
+No missing links.
+
+No broken buttons.
+
+No missing back navigation.
+
+====================================================
+
+STEP 4 — VERIFY COMPONENTS
+
+Check if reusable components exist.
+
+Buttons
+
+Inputs
+
+Cards
+
+Navbar
+
+Sidebar
+
+Search
+
+Filters
+
+Dropdowns
+
+Tables
+
+Charts
+
+Timeline
+
+Dialogs
+
+Modals
+
+Toasts
+
+Avatars
+
+Badges
+
+Progress Bars
+
+Chat Bubbles
+
+Notification Cards
+
+Maps
+
+QR Components
+
+OTP Components
+
+Loading Skeletons
+
+Empty States
+
+Error States
+
+Success States
+
+Create missing components.
+
+====================================================
+
+STEP 5 — VERIFY RESPONSIVENESS
+
+Desktop
+
+Laptop
+
+Tablet
+
+Mobile
+
+Check every page.
+
+Fix responsive issues automatically.
+
+====================================================
+
+STEP 6 — VERIFY DESIGN SYSTEM
+
+Check whether Design System exists.
+
+Colors
+
+Typography
+
+Spacing
+
+Radius
+
+Shadows
+
+Variables
+
+Icons
+
+Components
+
+Auto Layout
+
+Grids
+
+Constraints
+
+If missing, generate them.
+
+====================================================
+
+STEP 7 — VERIFY AI FEATURES
+
+Check UI for
+
+AI Image Analysis
+
+Image Similarity
+
+OCR Results
+
+Duplicate Detection
+
+Fraud Score
+
+Trust Score
+
+Ownership Verification
+
+Campus Office Inventory
+
+Heatmaps
+
+Analytics
+
+If missing, create them.
+
+====================================================
+
+STEP 8 — VERIFY USER FLOWS
+
+Lost Item
+
+↓
+
+Upload
+
+↓
+
+AI Analysis
+
+↓
+
+Match Found
+
+↓
+
+Admin Review
+
+↓
+
+Ownership Proof
+
+↓
+
+Chat
+
+↓
+
+QR Verification
+
+↓
+
+OTP Verification
+
+↓
+
+Item Returned
+
+↓
+
+Feedback
+
+↓
+
+History
+
+Verify complete flow.
+
+====================================================
+
+STEP 9 — VERIFY ADMIN FLOW
+
+Dashboard
+
+↓
+
+Pending Reports
+
+↓
+
+AI Match
+
+↓
+
+Manual Verification
+
+↓
+
+Approve
+
+↓
+
+Audit Log
+
+↓
+
+Analytics
+
+Verify every screen.
+
+====================================================
+
+STEP 10 — VERIFY FILE ORGANIZATION
+
+Rename every
+
+Frame
+
+Group
+
+Component
+
+Image
+
+Layer
+
+Use professional names.
+
+No "Frame 23"
+
+No "Group 18"
+
+No "Rectangle 44"
+
+====================================================
+
+STEP 11 — VERIFY AUTO LAYOUT
+
+Apply Auto Layout everywhere possible.
+
+Fix spacing.
+
+Fix alignment.
+
+Fix padding.
+
+Fix gaps.
+
+====================================================
+
+STEP 12 — VERIFY ACCESSIBILITY
+
+Contrast
+
+Touch Targets
+
+Font Sizes
+
+Keyboard Navigation
+
+Dark Mode
+
+Light Mode
+
+WCAG AA
+
+====================================================
+
+STEP 13 — FINAL QA REPORT
+
+Generate a Design QA Report.
+
+Include
+
+✅ Pages Created
+
+✅ Pages Missing
+
+✅ Pages Fixed
+
+✅ Components Created
+
+✅ Components Missing
+
+✅ Navigation Issues
+
+✅ Responsive Issues
+
+✅ Accessibility Issues
+
+✅ Design System Status
+
+✅ Prototype Status
+
+✅ Developer Readiness Score
+
+Overall Completion Percentage
+
+Example
+
+Pages
+48/48
+
+Components
+62/62
+
+Flows
+15/15
+
+Responsive
+100%
+
+Developer Ready
+YES
+
+Design Quality
+★★★★★
+
+If anything is missing, automatically create or fix it before marking the project complete.
+
+The final output should be a fully verified, production-ready, developer-ready Figma project suitable for handoff to frontend development.

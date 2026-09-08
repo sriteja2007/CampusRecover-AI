@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /features
+Allow: /how-it-works
+Allow: /about
+Allow: /contact
+Allow: /login
+Allow: /signup
+
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://campusrecover.ai/sitemap.xml

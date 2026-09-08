@@ -1,0 +1,190 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(role) {
+      return isSignedIn() && getUserData().role == role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (getUserData().role == 'admin' || getUserData().role == 'superadmin');
+    }
+
+    function isSecurity() {
+      return isSignedIn() && (hasRole('security') || isAdmin());
+    }
+
+    function isFaculty() {
+      return isSignedIn() && (hasRole('faculty') || isAdmin());
+    }
+
+    function isNotBanned() {
+      return isSignedIn() && (getUserData().isBanned != true);
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Lost Items
+    match /lostItems/{itemId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isNotBanned() && request.resource.data.userId == request.auth.uid;
+      allow update: if (isSignedIn() && resource.data.userId == request.auth.uid) || isSecurity() || isAdmin();
+      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+    }
+
+    // Found Items
+    match /foundItems/{itemId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isNotBanned() && request.resource.data.userId == request.auth.uid;
+      allow update: if (isSignedIn() && resource.data.userId == request.auth.uid) || isSecurity() || isAdmin();
+      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+    }
+
+    // Matches
+    match /matches/{matchId} {
+      allow read: if isSignedIn() && (
+        resource.data.lostUserId == request.auth.uid ||
+        resource.data.foundUserId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.lostUserId == request.auth.uid ||
+        resource.data.foundUserId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // AI Results
+    match /aiResults/{resultId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Claims & Handover
+    match /claims/{claimId} {
+      allow read: if isSignedIn() && (
+        resource.data.claimantId == request.auth.uid ||
+        resource.data.finderId == request.auth.uid ||
+        isSecurity() ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isNotBanned();
+      allow update: if isSignedIn() && (
+        resource.data.claimantId == request.auth.uid ||
+        resource.data.finderId == request.auth.uid ||
+        isSecurity() ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Handover Audit Logs (Immutable)
+    match /handoverLogs/{logId} {
+      allow read: if isSignedIn() && (
+        resource.data.claimantId == request.auth.uid ||
+        resource.data.finderId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if false; // Append-only immutable ledger
+    }
+
+    // Verification Logs (Immutable)
+    match /verificationLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if false; // Append-only
+    }
+
+    // Chat Rooms
+    match /chat_rooms/{roomId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid in resource.data.participants ||
+        isAdmin()
+      );
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        request.auth.uid in resource.data.participants ||
+        isAdmin()
+      );
+    }
+
+    // Chat Messages
+    match /messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isNotBanned() && request.resource.data.senderId == request.auth.uid;
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // User Presence
+    match /user_presence/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+    }
+
+    // In-App Notifications
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Notification Preferences
+    match /notification_preferences/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Fraud Reports
+    match /fraudReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // Background Processing Queue
+    match /matching_queue/{queueId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Campus Offices (Public Read, Admin Write)
+    match /campus_offices/{officeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Categories (Public Read, Admin Write)
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Departments (Public Read, Admin Write)
+    match /departments/{deptId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
