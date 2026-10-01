@@ -63,8 +63,11 @@ const ItemCard = memo(function ItemCard({
 
   if (view === "list") {
     return (
-      <Link to={`/dashboard/item/found/${item.id}`} className="flex gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-        <div className="w-20 h-20 rounded-xl bg-gray-100 flex-shrink-0 border border-gray-200 overflow-hidden">
+      <Link
+        to={`/dashboard/item/found/${item.id}`}
+        className="flex gap-4 p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+      >
+        <div className="w-20 h-20 rounded-xl bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-200 dark:border-gray-700 overflow-hidden">
           {thumb ? (
             <img
               src={thumb}
@@ -74,14 +77,14 @@ const ItemCard = memo(function ItemCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Package size={20} className="text-gray-300" />
+              <Package size={20} className="text-gray-400 dark:text-gray-500" />
             </div>
           )}
         </div>
         <div className="flex flex-col justify-between py-0.5 flex-1 min-w-0">
           <div>
             <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-bold text-[#131b2e] group-hover:text-teal-600 transition-colors line-clamp-1">
+              <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors line-clamp-1">
                 {item.title}
               </h3>
               <span
@@ -90,20 +93,20 @@ const ItemCard = memo(function ItemCard({
                 {st.label}
               </span>
             </div>
-            <p className="text-xs text-gray-500 line-clamp-1 mb-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mb-1">
               {item.description}
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <MapPin size={12} />
               {item.locationFound}
             </div>
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <Clock size={12} />
               {timeAgo}
             </div>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               {CONDITION_LABEL[item.condition] || "Good"} condition
             </span>
           </div>
@@ -113,8 +116,11 @@ const ItemCard = memo(function ItemCard({
   }
 
   return (
-    <Link to={`/dashboard/item/found/${item.id}`} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group overflow-hidden block">
-      <div className="aspect-[4/3] bg-gray-100 overflow-hidden">
+    <Link
+      to={`/dashboard/item/found/${item.id}`}
+      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer group overflow-hidden block"
+    >
+      <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-800 overflow-hidden">
         {thumb ? (
           <img
             src={thumb}
@@ -124,13 +130,13 @@ const ItemCard = memo(function ItemCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package size={32} className="text-gray-300" />
+            <Package size={32} className="text-gray-400 dark:text-gray-500" />
           </div>
         )}
       </div>
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-bold text-sm text-[#131b2e] group-hover:text-teal-600 transition-colors line-clamp-1">
+          <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors line-clamp-1">
             {item.title}
           </h3>
           <span
@@ -139,16 +145,16 @@ const ItemCard = memo(function ItemCard({
             {st.label}
           </span>
         </div>
-        <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
           {item.description}
         </p>
-        <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-1">
           <MapPin size={11} />
           {item.locationFound}
         </div>
         <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-gray-400">{timeAgo}</span>
-          <span className="text-[10px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
+          <span className="text-xs text-gray-400 dark:text-gray-500">{timeAgo}</span>
+          <span className="text-[10px] text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full font-medium">
             {CONDITION_LABEL[item.condition] || "Good"}
           </span>
         </div>
@@ -259,25 +265,25 @@ export default function BrowseFound() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 md:py-12">
       <div className="mb-8">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-          <Link to="/dashboard" className="hover:text-teal-600">
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
+          <Link to="/dashboard" className="hover:text-teal-600 dark:hover:text-teal-400">
             Dashboard
           </Link>
           <ChevronRight size={14} />
-          <span className="text-gray-900 font-medium">Found Items</span>
+          <span className="text-gray-900 dark:text-white font-medium">Found Items</span>
         </div>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-[#131b2e] tracking-tight">
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
               Found Items
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
               {total} items reported · Browse and claim your belongings
             </p>
           </div>
           <Link
             to="/dashboard/report-found"
-            className="flex items-center gap-2 px-5 py-2.5 bg-teal-500 text-white font-bold rounded-xl text-sm hover:bg-teal-600 transition-colors shadow-md"
+            className="flex items-center gap-2 px-5 py-2.5 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-xl text-sm transition-colors shadow-md shadow-teal-500/20"
           >
             <Package size={15} /> Report Found
           </Link>
@@ -287,7 +293,7 @@ export default function BrowseFound() {
       <div className="flex flex-col md:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
             size={18}
           />
           <input
@@ -295,16 +301,16 @@ export default function BrowseFound() {
             placeholder="Search found items..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm font-medium"
           />
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-colors border ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-colors border cursor-pointer ${
               showFilters || activeFilterCount > 0
-                ? "bg-teal-50 border-teal-200 text-teal-700"
-                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                ? "bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300"
+                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
             }`}
           >
             <Filter size={16} /> Filters{" "}
@@ -314,23 +320,23 @@ export default function BrowseFound() {
               </span>
             )}
           </button>
-          <div className="flex border border-gray-200 rounded-xl overflow-hidden">
+          <div className="flex border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
             <button
               onClick={() => setView("grid")}
-              className={`p-2.5 ${
+              className={`p-2.5 cursor-pointer ${
                 view === "grid"
-                  ? "bg-teal-50 text-teal-600"
-                  : "bg-white text-gray-400 hover:bg-gray-50"
+                  ? "bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400"
+                  : "bg-white dark:bg-gray-800 text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >
               <Grid3X3 size={16} />
             </button>
             <button
               onClick={() => setView("list")}
-              className={`p-2.5 ${
+              className={`p-2.5 cursor-pointer ${
                 view === "list"
-                  ? "bg-teal-50 text-teal-600"
-                  : "bg-white text-gray-400 hover:bg-gray-50"
+                  ? "bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400"
+                  : "bg-white dark:bg-gray-800 text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >
               <List size={16} />
@@ -340,15 +346,15 @@ export default function BrowseFound() {
       </div>
 
       {showFilters && (
-        <div className="mb-6 p-5 bg-white rounded-2xl border border-gray-200 shadow-sm">
+        <div className="mb-6 p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-[#131b2e]">
+            <span className="text-sm font-bold text-gray-900 dark:text-white">
               Filter Results
             </span>
             {activeFilterCount > 0 && (
               <button
                 onClick={clearFilters}
-                className="text-xs text-teal-600 font-semibold hover:underline flex items-center gap-1"
+                className="text-xs text-teal-600 dark:text-teal-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <X size={12} /> Clear all
               </button>
@@ -356,13 +362,13 @@ export default function BrowseFound() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                 Category
               </label>
               <select
                 value={filters.category || ""}
                 onChange={(e) => applyFilter("category", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-teal-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-teal-500"
               >
                 <option value="">All</option>
                 {CATEGORY_OPTIONS.map((c) => (
@@ -373,13 +379,13 @@ export default function BrowseFound() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                 Color
               </label>
               <select
                 value={filters.color || ""}
                 onChange={(e) => applyFilter("color", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-teal-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-teal-500"
               >
                 <option value="">All</option>
                 {COLOR_OPTIONS.map((c) => (
@@ -390,13 +396,13 @@ export default function BrowseFound() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                 Status
               </label>
               <select
                 value={filters.status || ""}
                 onChange={(e) => applyFilter("status", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-teal-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-teal-500"
               >
                 <option value="">All</option>
                 <option value="pending">Available</option>
@@ -406,13 +412,13 @@ export default function BrowseFound() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                 Location
               </label>
               <select
                 value={filters.location || ""}
                 onChange={(e) => applyFilter("location", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-teal-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-teal-500"
               >
                 <option value="">All</option>
                 {BUILDING_OPTIONS.map((b) => (
@@ -429,23 +435,23 @@ export default function BrowseFound() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 size={32} className="animate-spin text-teal-600 mb-4" />
-          <p className="text-sm text-gray-500">Loading found items...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading found items...</p>
         </div>
       ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-            <Search size={28} className="text-gray-300" />
+          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+            <Search size={28} className="text-gray-400 dark:text-gray-500" />
           </div>
-          <h3 className="text-lg font-bold text-[#131b2e] mb-1">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
             No items found
           </h3>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Try adjusting your search or filters.
           </p>
           {activeFilterCount > 0 && (
             <button
               onClick={clearFilters}
-              className="px-4 py-2 bg-teal-500 text-white text-sm font-semibold rounded-xl"
+              className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold rounded-xl cursor-pointer"
             >
               Clear Filters
             </button>

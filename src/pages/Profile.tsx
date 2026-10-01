@@ -20,7 +20,7 @@ import { CloudinaryService } from "../services/cloudinary/upload.service"
 
 const CLAIM_HISTORY = [
   {
-    item: "Stanford Student ID",
+    item: "Campus Student ID Card",
     date: "Aug 28, 2026",
     status: "returned",
     match: 99.1,
@@ -32,7 +32,7 @@ const CLAIM_HISTORY = [
     match: 97.3,
   },
   {
-    item: "Nike Dri-FIT Hoodie",
+    item: "Nike Dri-FIT Tech Fleece Hoodie",
     date: "May 3, 2026",
     status: "returned",
     match: 88.4,
@@ -90,172 +90,73 @@ export default function Profile() {
   if (!customUser) return null
 
   return (
-    <div
-      style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 24px 64px" }}
-    >
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <input
         type="file"
         ref={fileInputRef}
         onChange={handlePhotoUpload}
         accept="image/*"
-        style={{ display: "none" }}
+        className="hidden"
       />
 
-      {/* Profile header */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #131b2e, #1e2d50)",
-          borderRadius: 20,
-          padding: "32px",
-          marginBottom: 28,
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 24,
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: -40,
-            right: -40,
-            width: 200,
-            height: 200,
-            borderRadius: "50%",
-            background: "radial-gradient(rgba(37,99,235,0.25), transparent)",
-          }}
-        />
+      {/* Profile Header Hero Card */}
+      <div className="bg-[#131b2e] dark:bg-gray-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-white/5 dark:border-gray-800 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center gap-6">
+        <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
 
         <div
-          style={{ position: "relative", cursor: "pointer" }}
+          className="relative cursor-pointer group flex-shrink-0"
           onClick={() => fileInputRef.current?.click()}
+          title="Click to update avatar"
         >
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 999,
-              background: "linear-gradient(135deg, #2563eb, #14b8a6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 28,
-              fontWeight: 800,
-              color: "white",
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-teal-500 flex items-center justify-center text-3xl font-black text-white overflow-hidden shadow-lg border-2 border-white/20">
             {customUser.photoURL ? (
               <img
                 src={customUser.photoURL}
                 alt={customUser.name}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                className="w-full h-full object-cover"
               />
             ) : (
-              customUser.name.charAt(0).toUpperCase()
+              customUser.name?.charAt(0).toUpperCase() || "U"
             )}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(0,0,0,0.4)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: isUploading ? 1 : 0,
-                transition: "opacity 0.2s",
-              }}
-              className="hover:opacity-100"
-            >
-              <Camera size={20} color="white" />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera size={22} className="text-white" />
             </div>
           </div>
           {customUser.verified && (
-            <div
-              style={{
-                position: "absolute",
-                bottom: -4,
-                right: -4,
-                width: 22,
-                height: 22,
-                borderRadius: 999,
-                background: "#14b8a6",
-                border: "3px solid #131b2e",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <CheckCircle2 size={12} color="white" />
+            <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-teal-500 border-2 border-[#131b2e] flex items-center justify-center text-white">
+              <CheckCircle2 size={14} />
             </div>
           )}
         </div>
 
-        <div style={{ flex: 1, position: "relative" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginBottom: 6,
-            }}
-          >
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                color: "white",
-                margin: 0,
-              }}
-            >
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+            <h1 className="text-2xl font-black text-white tracking-tight">
               {customUser.name}
             </h1>
-            <span
-              style={{
-                padding: "2px 8px",
-                borderRadius: 6,
-                background: "rgba(113,248,228,0.2)",
-                color: "#71f8e4",
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-              }}
-            >
-              {customUser.role}
+            <span className="px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-300 text-[11px] font-bold uppercase tracking-wider border border-teal-500/30">
+              {customUser.role || "Student"}
             </span>
           </div>
-          <div
-            style={{
-              fontSize: 14,
-              color: "rgba(255,255,255,0.6)",
-              marginBottom: 16,
-            }}
-          >
-            {customUser.email} · {customUser.department || "No Department"}{" "}
-            {customUser.year ? `(${customUser.year})` : ""} ·{" "}
-            {customUser.college || "No College"}
-          </div>
+          <p className="text-xs sm:text-sm text-gray-300 mb-4 flex flex-wrap items-center gap-x-2">
+            <span>{customUser.email}</span>
+            <span>·</span>
+            <span>{customUser.department || "General Campus"}</span>
+            {customUser.year ? <span>({customUser.year})</span> : null}
+            <span>·</span>
+            <span>{customUser.college || "University Campus"}</span>
+          </p>
 
           {isEditing ? (
-            <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+            <div className="flex flex-wrap gap-2.5 mb-4">
               <input
                 type="text"
-                placeholder="Phone"
+                placeholder="Mobile number"
                 value={editForm.phone}
                 onChange={(e) =>
                   setEditForm({ ...editForm, phone: e.target.value })
                 }
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: "none",
-                  outline: "none",
-                  fontSize: 13,
-                  background: "rgba(255,255,255,0.1)",
-                  color: "white",
-                }}
+                className="px-3 py-2 bg-white/10 dark:bg-gray-800 border border-white/20 dark:border-gray-700 rounded-xl text-xs text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="text"
@@ -264,15 +165,7 @@ export default function Profile() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, department: e.target.value })
                 }
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: "none",
-                  outline: "none",
-                  fontSize: 13,
-                  background: "rgba(255,255,255,0.1)",
-                  color: "white",
-                }}
+                className="px-3 py-2 bg-white/10 dark:bg-gray-800 border border-white/20 dark:border-gray-700 rounded-xl text-xs text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="text"
@@ -281,58 +174,34 @@ export default function Profile() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, year: e.target.value })
                 }
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: "none",
-                  outline: "none",
-                  fontSize: 13,
-                  background: "rgba(255,255,255,0.1)",
-                  color: "white",
-                  width: 80,
-                }}
+                className="w-20 px-3 py-2 bg-white/10 dark:bg-gray-800 border border-white/20 dark:border-gray-700 rounded-xl text-xs text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           ) : (
-            <div
-              style={{
-                fontSize: 13,
-                color: "rgba(255,255,255,0.5)",
-                marginBottom: 16,
-              }}
-            >
-              Phone: {customUser.phone || "Not provided"}
+            <div className="text-xs text-gray-400 mb-4">
+              Contact Phone:{" "}
+              <strong className="text-white">
+                {customUser.phone || "Not provided"}
+              </strong>
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 20 }}>
+          {/* Quick Metrics */}
+          <div className="flex flex-wrap gap-4 sm:gap-6 pt-3 border-t border-white/10">
             {[
               {
-                value: customUser.verified ? "100" : "50",
+                value: customUser.verified ? "100%" : "60%",
                 label: "Trust Score",
               },
               { value: "3", label: "Items Returned" },
               { value: "5", label: "Reports Filed" },
               { value: "0", label: "Fraud Flags" },
             ].map(({ value, label }) => (
-              <div key={label} style={{ textAlign: "center" }}>
-                <div
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 800,
-                    color: "white",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
+              <div key={label} className="text-left">
+                <div className="text-lg sm:text-xl font-black text-white">
                   {value}
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "rgba(255,255,255,0.45)",
-                    fontWeight: 500,
-                  }}
-                >
+                <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
                   {label}
                 </div>
               </div>
@@ -340,163 +209,81 @@ export default function Profile() {
           </div>
         </div>
 
-        {isEditing ? (
-          <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex-shrink-0 self-start md:self-center">
+          {isEditing ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors flex items-center gap-1.5"
+              >
+                <X size={14} /> Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+              >
+                <Save size={14} /> {isSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => setIsEditing(false)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "9px 12px",
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.1)",
-                border: "1px solid rgba(255,255,255,0.15)",
-                color: "white",
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
+              onClick={() => setIsEditing(true)}
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors flex items-center gap-2 border border-white/15"
             >
-              <X size={13} /> Cancel
+              <Edit3 size={14} /> Edit Profile
             </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "9px 16px",
-                borderRadius: 10,
-                background: "#2563eb",
-                border: "none",
-                color: "white",
-                cursor: isSaving ? "not-allowed" : "pointer",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              <Save size={13} /> {isSaving ? "Saving..." : "Save"}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "9px 16px",
-              borderRadius: 10,
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.15)",
-              color: "white",
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            <Edit3 size={13} /> Edit Profile
-          </button>
-        )}
+          )}
+        </div>
       </div>
 
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24 }}
-        className="profile-grid"
-      >
-        <style>{`@media(max-width:900px){.profile-grid{grid-template-columns:1fr!important;}}`}</style>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* AI Stats */}
-          <div
-            style={{
-              background: "white",
-              borderRadius: 16,
-              border: "1px solid #e2e7ff",
-              padding: 24,
-            }}
-          >
-            <h2
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: "#131b2e",
-                margin: "0 0 20px",
-              }}
-            >
-              Recovery Statistics
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Recovery Stats */}
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">
+              Recovery Statistics & Metrics
             </h2>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 14,
-              }}
-            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {[
                 {
                   icon: TrendingUp,
                   label: "Avg. Match Speed",
                   value: "3m 41s",
-                  color: "#14b8a6",
+                  colorClass: "text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/50",
                 },
                 {
                   icon: Star,
                   label: "Avg. Match Confidence",
                   value: "95.6%",
-                  color: "#2563eb",
+                  colorClass: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50",
                 },
                 {
                   icon: Clock,
                   label: "Longest Search",
                   value: "2d 4h",
-                  color: "#f59e0b",
+                  colorClass: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50",
                 },
                 {
                   icon: Package,
                   label: "Total Items Value",
                   value: "~$820",
-                  color: "#2563eb",
+                  colorClass: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50",
                 },
-              ].map(({ icon: Icon, label, value, color }) => (
+              ].map(({ icon: Icon, label, value, colorClass }) => (
                 <div
                   key={label}
-                  style={{
-                    padding: 16,
-                    borderRadius: 12,
-                    background: "#faf8ff",
-                    border: "1px solid #e2e7ff",
-                  }}
+                  className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/80 dark:border-gray-700/60"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <Icon size={15} color={color} />
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: "#737686",
-                        fontWeight: 600,
-                      }}
-                    >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`p-1.5 rounded-lg ${colorClass}`}>
+                      <Icon size={16} />
+                    </div>
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                       {label}
                     </span>
                   </div>
-                  <div
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 800,
-                      color: "#131b2e",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
+                  <div className="text-2xl font-black text-gray-900 dark:text-white">
                     {value}
                   </div>
                 </div>
@@ -504,206 +291,132 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Claim history */}
-          <div
-            style={{
-              background: "white",
-              borderRadius: 16,
-              border: "1px solid #e2e7ff",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: "16px 20px",
-                borderBottom: "1px solid #e2e7ff",
-              }}
-            >
-              <span style={{ fontSize: 15, fontWeight: 700, color: "#131b2e" }}>
-                Claim History
+          {/* Claim History */}
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+              <span className="text-base font-bold text-gray-900 dark:text-white">
+                Claim & Verification History
               </span>
             </div>
-            {CLAIM_HISTORY.map((claim) => (
-              <div
-                key={claim.item}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "14px 20px",
-                  borderBottom: "1px solid #f2f3ff",
-                }}
-              >
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {CLAIM_HISTORY.map((claim) => (
                 <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: "rgba(20,184,166,0.1)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                  key={claim.item}
+                  className="flex items-center gap-3.5 p-4 sm:px-5 hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors"
                 >
-                  <CheckCircle2 size={18} color="#14b8a6" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{ fontSize: 13, fontWeight: 600, color: "#131b2e" }}
-                  >
-                    {claim.item}
+                  <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center flex-shrink-0 border border-teal-200/50 dark:border-teal-800/50">
+                    <CheckCircle2 size={18} />
                   </div>
-                  <div style={{ fontSize: 11, color: "#737686" }}>
-                    {claim.date}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate">
+                      {claim.item}
+                    </div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                      {claim.date}
+                    </div>
                   </div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div
-                    style={{ fontSize: 12, fontWeight: 700, color: "#14b8a6" }}
-                  >
-                    Returned ✓
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontFamily: "JetBrains Mono, monospace",
-                      color: "#737686",
-                    }}
-                  >
-                    {claim.match}% match
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-xs font-bold text-teal-600 dark:text-teal-400">
+                      Returned ✓
+                    </div>
+                    <div className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
+                      {claim.match}% match
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Settings sidebar */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div
-            style={{
-              background: "white",
-              borderRadius: 16,
-              border: "1px solid #e2e7ff",
-              padding: 20,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#131b2e",
-                marginBottom: 14,
-              }}
-            >
-              Account Settings
-            </div>
-            {[
-              {
-                icon: Lock,
-                label: "Security Settings",
-                desc: "Password, 2FA, devices",
-              },
-              {
-                icon: Bell,
-                label: "Notifications",
-                desc: "Match alerts, messages",
-              },
-              {
-                icon: Globe,
-                label: "Privacy",
-                desc: "Visibility, data controls",
-              },
-              {
-                icon: Shield,
-                label: "Trust & Verification",
-                desc: "Score history, .edu SSO",
-              },
-            ].map(({ icon: Icon, label, desc }) => (
-              <div
-                key={label}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "12px 0",
-                  borderBottom: "1px solid #f2f3ff",
-                  cursor: "pointer",
-                }}
-              >
+        {/* Settings Sidebar */}
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+              Account Controls
+            </h3>
+            <div className="space-y-1">
+              {[
+                {
+                  icon: Lock,
+                  label: "Security Settings",
+                  desc: "Password, 2FA, authorized devices",
+                },
+                {
+                  icon: Bell,
+                  label: "Notification Delivery",
+                  desc: "Instant match alerts, in-app badges",
+                },
+                {
+                  icon: Globe,
+                  label: "Privacy & Data Controls",
+                  desc: "Campus visibility, contact permissions",
+                },
+                {
+                  icon: Shield,
+                  label: "Campus SSO Trust",
+                  desc: "Verified institutional identity",
+                },
+              ].map(({ icon: Icon, label, desc }) => (
                 <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: "#eaedff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                  key={label}
+                  className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer"
                 >
-                  <Icon size={16} color="#2563eb" />
-                </div>
-                <div>
-                  <div
-                    style={{ fontSize: 13, fontWeight: 600, color: "#131b2e" }}
-                  >
-                    {label}
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+                    <Icon size={16} />
                   </div>
-                  <div style={{ fontSize: 11, color: "#737686" }}>{desc}</div>
+                  <div>
+                    <div className="text-xs font-bold text-gray-900 dark:text-white">
+                      {label}
+                    </div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                      {desc}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          <div
-            style={{
-              padding: 20,
-              borderRadius: 16,
-              background: "rgba(37,99,235,0.04)",
-              border: "1px solid rgba(37,99,235,0.12)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 10,
-              }}
-            >
+          {/* Verification Badge Box */}
+          <div className="p-5 rounded-3xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-900/50 shadow-xs">
+            <div className="flex items-center gap-2 mb-3">
               <Shield
-                size={16}
-                color={customUser.verified ? "#2563eb" : "#737686"}
+                size={18}
+                className={
+                  customUser.verified
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-gray-400"
+                }
               />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#131b2e" }}>
-                {customUser.verified
-                  ? "Verified Account"
-                  : "Unverified Account"}
+              <span className="text-xs font-bold text-gray-900 dark:text-white">
+                {customUser.verified ? "Verified Campus Member" : "Standard Student Profile"}
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="space-y-2 text-xs">
               {[
                 { text: ".edu SSO verified", active: customUser.verified },
-                { text: "Government ID on file", active: false },
-                { text: "Face-scan enrolled", active: false },
+                { text: "Campus ID on file", active: true },
                 { text: "Zero fraud history", active: true },
+                { text: "Direct Handover authorized", active: true },
               ].map((item) => (
                 <div
                   key={item.text}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    fontSize: 12,
-                    color: item.active ? "#434655" : "#a1a1aa",
-                  }}
+                  className={`flex items-center gap-2 font-medium ${
+                    item.active
+                      ? "text-gray-700 dark:text-gray-300"
+                      : "text-gray-400 dark:text-gray-500"
+                  }`}
                 >
                   <CheckCircle2
-                    size={13}
-                    color={item.active ? "#14b8a6" : "#e4e4e7"}
-                  />{" "}
-                  {item.text}
+                    size={14}
+                    className={
+                      item.active
+                        ? "text-teal-600 dark:text-teal-400"
+                        : "text-gray-300 dark:text-gray-600"
+                    }
+                  />
+                  <span>{item.text}</span>
                 </div>
               ))}
             </div>

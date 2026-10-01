@@ -1,603 +1,386 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router"
 import {
-  Sparkles,
-  Package,
-  Search,
-  Bell,
-  TrendingUp,
-  Clock,
+  FileWarning,
   CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-  MapPin,
-  QrCode,
+  Sparkles,
   ShieldCheck,
-  Building2,
-  Users,
-  FileSearch,
+  Search,
+  Plus,
+  FileText,
   KeyRound,
-  ShieldAlert,
-  HelpCircle,
-  MessageSquare,
-  ChevronRight,
+  ArrowRight,
+  Package,
   Calendar,
+  MapPin,
+  Clock,
+  Loader2,
+  ChevronRight,
 } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
-import {
-  LostItemService,
-  FoundItemService,
-} from "../services/firebase/item.service"
-import { MatchingService, MatchResult } from "../services/matching.service"
-import { HandoverService } from "../services/handover.service"
-import { LostItem } from "../types/LostItem"
-import { FoundItem } from "../types/FoundItem"
-import { Claim } from "../types/Claim"
-import { RealtimeChatService, ChatRoom } from "../services/firebase/chat.service"
-import { MeetingService, Meeting } from "../services/firebase/meeting.service"
-import { SkeletonDashboard } from "../components/common/Skeleton"
-import { EmptyState } from "../components/common/EmptyState"
-import { SEO } from "../components/common/SEO"
+import { SimpleItemService } from "../services/simpleItem.service"
+import { SimpleMatchingService } from "../services/simpleMatching.service"
+import { Item } from "../types/Item"
+import { Match } from "../types/Match"
 
 export default function Dashboard() {
-  const { user, customUser, loading: authLoading } = useAuth()
+  const { user, customUser } = useAuth()
 
   const [loading, setLoading] = useState(true)
-  const [userLost, setUserLost] = useState<LostItem[]>([])
-  const [userFound, setUserFound] = useState<FoundItem[]>([])
-  const [userMatches, setUserMatches] = useState<MatchResult[]>([])
-  const [userClaims, setUserClaims] = useState<Claim[]>([])
-  const [userChats, setUserChats] = useState<ChatRoom[]>([])
-  const [userMeetings, setUserMeetings] = useState<Meeting[]>([])
+  const [lostCount, setLostCount] = useState(0)
+  const [foundCount, setFoundCount] = useState(0)
+  const [matchCount, setMatchCount] = useState(0)
+  const [recoveredCount, setRecoveredCount] = useState(0)
+  const [recentReports, setRecentReports] = useState<Item[]>([])
+  const [recentMatches, setRecentMatches] = useState<Match[]>([])
 
   useEffect(() => {
-    if (!user) {
+    if (user?.uid) {
+      loadDashboardData()
+    } else {
       setLoading(false)
-      return
     }
-
-    const loadUserData = async () => {
-      setLoading(true)
-      try {
-        const [lostRes, foundRes, matchesRes, claimsRes, roomsRes, meetingsRes] = await Promise.all([
-          LostItemService.getByUser(user.uid),
-          FoundItemService.getByUser(user.uid),
-          MatchingService.getUserMatches(user.uid),
-          HandoverService.getClaimsForUser(user.uid),
-          RealtimeChatService.getUserRooms(user.uid),
-          MeetingService.getUserMeetings(user.uid),
-        ])
-
-        setUserLost(lostRes)
-        setUserFound(foundRes)
-        setUserMatches(matchesRes)
-        setUserClaims(claimsRes)
-        setUserChats(roomsRes)
-        setUserMeetings(meetingsRes)
-      } catch (err) {
-        console.error("Dashboard data load error:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadUserData()
   }, [user])
 
-  if (authLoading || loading) {
-    return <SkeletonDashboard />
+  const loadDashboardData = async () => {
+    if (!user?.uid) return
+    setLoading(true)
+    try {
+      const [userItems, userMatches, allItems] = await Promise.all([
+        SimpleItemService.getItemsByUser(user.uid),
+        SimpleMatchingService.getUserMatches(user.uid),
+        SimpleItemService.getItems(),
+      ])
+
+      const myLost = userItems.filter((i) => i.type === "LOST")
+      const myFound = userItems.filter((i) => i.type === "FOUND")
+      const recovered = userItems.filter((i) => i.status === "recovered")
+
+      setLostCount(myLost.length)
+      setFoundCount(myFound.length)
+      setMatchCount(userMatches.length)
+      setRecoveredCount(recovered.length)
+
+      setRecentReports(allItems.slice(0, 5))
+      setRecentMatches(userMatches.slice(0, 3))
+    } catch (err) {
+      console.error("Dashboard data load error:", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const role = customUser?.role || "student"
-  const displayName = customUser?.name || user?.displayName || "Campus Member"
-  const firstName = displayName.split(" ")[0]
-  const university = customUser?.university || "CampusRecover Network"
-  const department = customUser?.department ? ` · ${customUser.department}` : ""
-  const trustScore = customUser?.trustScore
-    ? customUser.trustScore.toFixed(1)
-    : "100.0"
-  const initial = displayName.charAt(0).toUpperCase()
+  const displayName = customUser?.name || user?.displayName || "Student"
 
-  // Metrics
-  const activeReportsCount = userLost.length + userFound.length
-  const matchCount = userMatches.length
-  const matchRate =
-    activeReportsCount > 0
-      ? Math.round((matchCount / activeReportsCount) * 100)
-      : 0
-  const activeClaims = userClaims.filter(
-    (c) => c.status !== "resolved" && c.status !== "rejected",
-  )
-  const completedClaims = userClaims.filter((c) => c.status === "resolved")
-
-  // Combined recent items
-  const recentItems = [...userLost, ...userFound]
-    .sort((a, b) => {
-      const timeA = (a.createdAt as any)?.seconds || 0
-      const timeB = (b.createdAt as any)?.seconds || 0
-      return timeB - timeA
-    })
-    .slice(0, 5)
+  if (loading) {
+    return (
+      <div className="py-24 flex flex-col items-center justify-center text-gray-400 gap-3">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+        <p className="text-sm font-medium">Loading your campus dashboard...</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
-      <SEO
-        title={`${role.charAt(0).toUpperCase() + role.slice(1)} Dashboard`}
-        description="Unified Lost & Found campus command center powered by CampusRecover AI."
-      />
-
-      {/* Role-Specific Banner Alert for Active Claims */}
-      {activeClaims.length > 0 && (
-        <div className="p-4 bg-gradient-to-r from-teal-500/10 via-blue-500/10 to-indigo-500/10 border border-teal-500/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-              <ShieldCheck size={20} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                You have {activeClaims.length} active item handover in progress
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                OTP verification and dynamic QR transfer ready for custody
-                confirmation.
-              </p>
-            </div>
-          </div>
-          <Link
-            to={`/dashboard/scan-qr?claimId=${activeClaims[0].id}`}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors shrink-0"
-          >
-            Open Handover Verification →
-          </Link>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-3.5">
-          {customUser?.avatar || user?.photoURL ? (
-            <img
-              src={customUser?.avatar || user?.photoURL || ""}
-              alt={displayName}
-              className="w-12 h-12 rounded-full object-cover border-2 border-blue-600 shadow-sm"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-teal-400 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              {initial}
-            </div>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-              Good day, {firstName} 👋
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-              <span>
-                {university}
-                {department}
-              </span>
-              <span>•</span>
-              <span className="capitalize font-semibold text-blue-600 dark:text-blue-400">
-                {role}
-              </span>
-              <span>•</span>
-              <span>
-                Trust Score{" "}
-                <strong className="text-teal-600 dark:text-teal-400 font-bold">
-                  {trustScore}
-                </strong>
-              </span>
-            </p>
-          </div>
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-r from-[#131b2e] to-[#1e293b] rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-slate-900/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div>
+          <span className="text-xs font-black uppercase tracking-wider text-blue-400 block mb-1">
+            Campus Lost & Found Portal
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+            Welcome, {displayName}!
+          </h1>
+          <p className="text-sm text-gray-300 mt-1 max-w-lg">
+            Manage your reports, scan for AI-matched belongings, and securely
+            verify recoveries across campus.
+          </p>
         </div>
 
-        {/* Header Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex gap-2.5 flex-wrap">
           <Link
             to="/dashboard/report-lost"
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm shadow-blue-500/20 transition-all"
+            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/30 transition-all flex items-center gap-1.5"
           >
-            <Sparkles size={15} /> Report Lost
+            <Plus size={15} /> Report Lost Item
           </Link>
           <Link
             to="/dashboard/report-found"
-            className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold rounded-xl shadow-sm shadow-teal-500/20 transition-all"
+            className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-md shadow-teal-600/30 transition-all flex items-center gap-1.5"
           >
-            <Package size={15} /> Report Found
+            <Plus size={15} /> Report Found Item
           </Link>
         </div>
       </div>
 
-      {/* Role-Specific Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1 */}
-        <div className="p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: My Lost */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-200/80 dark:border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              {role === "security"
-                ? "Custody Items"
-                : role === "faculty"
-                  ? "Dept Reports"
-                  : "My Reports"}
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              My Lost Items
             </span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Package size={16} />
+            <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+              <FileWarning size={18} />
             </div>
           </div>
-          <div className="text-2xl font-black text-gray-900 dark:text-white">
-            {activeReportsCount}
-          </div>
-          <div className="text-[11px] text-gray-400 mt-1">
-            {userLost.length} lost • {userFound.length} found
-          </div>
+          <div className="text-3xl font-black text-gray-900 dark:text-white">{lostCount}</div>
+          <Link
+            to="/dashboard/my-reports"
+            className="text-xs text-rose-600 dark:text-rose-400 font-bold hover:underline mt-2 inline-block"
+          >
+            View Lost Items →
+          </Link>
         </div>
 
-        {/* KPI 2 */}
-        <div className="p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+        {/* Card 2: My Found */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-200/80 dark:border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              My Found Items
+            </span>
+            <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+              <CheckCircle2 size={18} />
+            </div>
+          </div>
+          <div className="text-3xl font-black text-gray-900 dark:text-white">{foundCount}</div>
+          <Link
+            to="/dashboard/my-reports"
+            className="text-xs text-teal-600 dark:text-teal-400 font-bold hover:underline mt-2 inline-block"
+          >
+            View Found Items →
+          </Link>
+        </div>
+
+        {/* Card 3: AI Matches */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-200/80 dark:border-gray-800 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
               AI Matches
             </span>
-            <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-              <Sparkles size={16} />
+            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Sparkles size={18} />
             </div>
           </div>
-          <div className="text-2xl font-black text-gray-900 dark:text-white">
-            {matchCount}
-          </div>
-          <div className="text-[11px] text-teal-600 dark:text-teal-400 mt-1 font-semibold">
-            {matchRate}% pairing rate
-          </div>
+          <div className="text-3xl font-black text-gray-900 dark:text-white">{matchCount}</div>
+          <Link
+            to="/dashboard/ai-match"
+            className="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline mt-2 inline-block"
+          >
+            View AI Matches →
+          </Link>
         </div>
 
-        {/* KPI 3 */}
-        <div className="p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+        {/* Card 4: Recovered */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-200/80 dark:border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Active Claims
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              Recoveries
             </span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <Clock size={16} />
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <ShieldCheck size={18} />
             </div>
           </div>
-          <div className="text-2xl font-black text-gray-900 dark:text-white">
-            {activeClaims.length}
+          <div className="text-3xl font-black text-gray-900 dark:text-white">
+            {recoveredCount}
           </div>
-          <div className="text-[11px] text-gray-400 mt-1">
-            Awaiting OTP / QR Handover
-          </div>
-        </div>
-
-        {/* KPI 4 */}
-        <div className="p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Resolved Items
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <CheckCircle2 size={16} />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-gray-900 dark:text-white">
-            {completedClaims.length}
-          </div>
-          <div className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">
-            Successfully recovered
-          </div>
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-2 inline-block">
+            Successfully verified
+          </span>
         </div>
       </div>
 
-      {/* Main Grid Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Left Column: Recent Activity Feed */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-gray-900 dark:text-white">
-                Recent Campus Activity
-              </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Items you have recently logged or verified
-              </p>
+      {/* Quick Action Navigation Buttons */}
+      <div>
+        <h2 className="text-sm font-black text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-3">
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <Link
+            to="/dashboard/report-lost"
+            className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-800 hover:border-rose-400 hover:shadow-md transition-all text-center group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform">
+              <FileWarning size={20} />
             </div>
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block">
+              Report Lost
+            </span>
+          </Link>
+
+          <Link
+            to="/dashboard/report-found"
+            className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-800 hover:border-teal-400 hover:shadow-md transition-all text-center group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform">
+              <CheckCircle2 size={20} />
+            </div>
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block">
+              Report Found
+            </span>
+          </Link>
+
+          <Link
+            to="/dashboard/lost"
+            className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-800 hover:border-blue-400 hover:shadow-md transition-all text-center group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform">
+              <Search size={20} />
+            </div>
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block">
+              Search Items
+            </span>
+          </Link>
+
+          <Link
+            to="/dashboard/ai-match"
+            className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-800 hover:border-purple-400 hover:shadow-md transition-all text-center group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform">
+              <Sparkles size={20} />
+            </div>
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block">
+              AI Matches
+            </span>
+          </Link>
+
+          <Link
+            to="/dashboard/my-reports"
+            className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-800 hover:border-indigo-400 hover:shadow-md transition-all text-center group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform">
+              <FileText size={20} />
+            </div>
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block">
+              My Reports
+            </span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Two Column Layout: Recent Reports & AI Match Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Campus Reports (2 cols) */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200/80 dark:border-gray-800 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-black text-gray-900 dark:text-white text-base">
+              Recent Campus Reports
+            </h3>
             <Link
-              to="/dashboard/my-reports"
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              to="/dashboard/lost"
+              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
             >
-              View all reports <ArrowRight size={13} />
+              Browse All <ArrowRight size={13} />
             </Link>
           </div>
 
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
-            {recentItems.length === 0 ? (
-              <EmptyState
-                title="No reports filed yet"
-                description="You haven't posted any lost or found items. Report an item or browse campus registry."
-                actionLabel="Report Lost Item"
-                actionHref="/dashboard/report-lost"
-                secondaryLabel="Browse Lost Feed"
-                secondaryHref="/dashboard/lost"
-              />
-            ) : (
-              recentItems.map((item) => {
-                const isLost = "locationLost" in item
-                const loc = isLost
-                  ? (item as LostItem).locationLost
-                  : (item as FoundItem).locationFound
-                const thumb = item.imageUrls?.[0]
-
-                return (
-                  <div
-                    key={item.id}
-                    className="p-4 flex items-center gap-4 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0 border border-gray-200 dark:border-gray-700">
-                      {thumb ? (
-                        <img
-                          src={thumb}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          <Package size={20} />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-bold text-sm text-gray-900 dark:text-white truncate">
-                          {item.title}
+          {recentReports.length === 0 ? (
+            <p className="text-xs text-gray-500 dark:text-gray-400 py-6 text-center">
+              No reports filed yet.
+            </p>
+          ) : (
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {recentReports.map((item) => (
+                <div
+                  key={item.id}
+                  className="py-3 flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        item.type === "LOST" ? "bg-rose-500" : "bg-teal-500"
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                        {item.itemName}
+                      </p>
+                      <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                        <span className="font-mono text-blue-600 dark:text-blue-400">
+                          {item.referenceNumber}
                         </span>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            isLost
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
-                              : "bg-teal-100 text-teal-700 dark:bg-teal-950/50 dark:text-teal-400"
-                          }`}
-                        >
-                          {isLost ? "Lost" : "Found"}
-                        </span>
+                        <span>·</span>
+                        <span>{item.location}</span>
+                        <span>·</span>
+                        <span>{item.date}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                        <MapPin size={12} />
-                        <span className="truncate">
-                          {loc || "Campus grounds"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <span className="inline-block px-2 py-1 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 capitalize">
-                        {item.status}
-                      </span>
                     </div>
                   </div>
-                )
-              })
-            )}
-          </div>
+
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
+                      item.status === "recovered"
+                        ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
+                    }`}
+                  >
+                    {item.status.replace("_", " ")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Dashboard Widgets: Recent Chats & Meetings */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          {/* Recent Chats */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col">
+        {/* AI Matches Feed (1 col) */}
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200/80 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+          <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-[#131b2e] dark:text-white flex items-center gap-2 text-sm">
-                <MessageSquare className="text-emerald-500" size={18} /> Recent Chats
+              <h3 className="font-black text-gray-900 dark:text-white text-base flex items-center gap-2">
+                <Sparkles size={16} className="text-purple-600 dark:text-purple-400" />
+                Your AI Matches
               </h3>
-              <Link to="/dashboard/messages" className="text-xs text-emerald-600 font-bold hover:underline">
+              <Link
+                to="/dashboard/ai-match"
+                className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline"
+              >
                 View All
               </Link>
             </div>
-            <div className="flex-1 space-y-3">
-              {userChats.length === 0 ? (
-                <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                  No recent conversations.
-                </div>
-              ) : (
-                userChats.slice(0, 3).map((chat) => {
-                  const otherUser = chat.participants.find((p) => p !== user?.uid) || ""
-                  const otherName = chat.participantNames[otherUser] || "User"
-                  return (
-                    <Link
-                      key={chat.id}
-                      to={`/dashboard/chat?room=${chat.id}`}
-                      className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-emerald-50 dark:bg-gray-800 transition-colors"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold text-xs text-gray-900 dark:text-white truncate">{otherName}</p>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{chat.lastMessage || chat.itemTitle}</p>
-                      </div>
-                      <ChevronRight size={14} className="text-gray-400" />
-                    </Link>
-                  )
-                })
-              )}
-            </div>
-          </div>
 
-          {/* Pending Meetings */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-[#131b2e] dark:text-white flex items-center gap-2 text-sm">
-                <Calendar className="text-blue-500" size={18} /> Pending Meetings
-              </h3>
-            </div>
-            <div className="flex-1 space-y-3">
-              {userMeetings.length === 0 ? (
-                <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                  No scheduled meetings.
-                </div>
-              ) : (
-                userMeetings.slice(0, 3).map((meeting) => (
+            {recentMatches.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  No active matches for your items right now.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentMatches.map((m) => (
                   <div
-                    key={meeting.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-blue-50/50 border border-blue-100 dark:bg-gray-800 dark:border-gray-700"
+                    key={m.id}
+                    className="p-3 bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-800/60 rounded-2xl text-xs"
                   >
-                    <div>
-                      <p className="font-bold text-xs text-blue-900 dark:text-blue-100">{meeting.officeName}</p>
-                      <p className="text-[11px] text-blue-700 dark:text-blue-300">
-                        {meeting.date} at {meeting.time}
-                      </p>
+                    <div className="flex items-center justify-between font-bold text-purple-950 dark:text-purple-200 mb-1">
+                      <span>{m.lostItemName}</span>
+                      <span className="text-emerald-700 dark:text-emerald-400 font-mono">
+                        {m.aiScore}% Match
+                      </span>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-white text-blue-600 capitalize shadow-xs border border-blue-50">
-                      {meeting.status}
-                    </span>
+                    <p className="text-gray-700 dark:text-gray-300 text-[11px] line-clamp-2 mb-2 leading-relaxed">
+                      "{m.aiReason}"
+                    </p>
+                    <Link
+                      to={`/dashboard/ai-match?matchId=${m.id}`}
+                      className="text-purple-700 dark:text-purple-400 font-bold hover:underline flex items-center gap-1 text-[11px]"
+                    >
+                      View Details & Contact <ChevronRight size={12} />
+                    </Link>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Role Quick Actions & Trust Score Card */}
-        <div className="space-y-6">
-          {/* Quick Actions Panel tailored per role */}
-          <div className="p-5 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-3">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-              {role === "admin"
-                ? "Admin Navigation"
-                : role === "security"
-                  ? "Security Protocol Actions"
-                  : role === "faculty"
-                    ? "Department Actions"
-                    : "Student Quick Actions"}
-            </h3>
-
-            <div className="space-y-2">
-              {role === "admin" && (
-                <Link
-                  to="/admin"
-                  className="flex items-center justify-between p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold text-xs hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <ShieldAlert size={16} /> Open Admin Command Center
-                  </span>
-                  <ArrowRight size={13} />
-                </Link>
-              )}
-
-              {role === "security" && (
-                <>
-                  <Link
-                    to="/dashboard/scan-qr"
-                    className="flex items-center justify-between p-3 rounded-xl bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 font-semibold text-xs hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <QrCode size={16} /> Scan Handover QR Token
-                    </span>
-                    <ArrowRight size={13} />
-                  </Link>
-                  <Link
-                    to="/dashboard/generate-otp"
-                    className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <KeyRound size={16} /> Generate Handover OTP
-                    </span>
-                    <ArrowRight size={13} />
-                  </Link>
-                </>
-              )}
-
-              {role === "faculty" && (
-                <>
-                  <Link
-                    to="/dashboard/department-items"
-                    className="flex items-center justify-between p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold text-xs hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Building2 size={16} /> Department Item Intake
-                    </span>
-                    <ArrowRight size={13} />
-                  </Link>
-                  <Link
-                    to="/dashboard/student-reports"
-                    className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Users size={16} /> Review Student Claims
-                    </span>
-                    <ArrowRight size={13} />
-                  </Link>
-                </>
-              )}
-
-              {/* Common Actions */}
-              <Link
-                to="/dashboard/ai-match"
-                className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <Sparkles size={16} className="text-teal-500" /> Automated AI
-                  Matches
-                </span>
-                <ArrowRight size={13} />
-              </Link>
-
-              <Link
-                to="/dashboard/scan-qr"
-                className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <QrCode size={16} className="text-blue-500" /> Verify Handover
-                  (QR / OTP)
-                </span>
-                <ArrowRight size={13} />
-              </Link>
-
-              <Link
-                to="/dashboard/map"
-                className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <MapPin size={16} className="text-amber-500" /> Campus
-                  Hotspots Map
-                </span>
-                <ArrowRight size={13} />
-              </Link>
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* User Trust & Verification Card */}
-          <div className="p-6 bg-gradient-to-br from-[#131b2e] to-[#1e293b] text-white rounded-3xl shadow-md space-y-4">
-            <div className="flex items-center justify-between text-xs font-bold text-white/50 uppercase tracking-widest">
-              <span>Campus Trust Score</span>
-              <ShieldCheck size={16} className="text-teal-400" />
-            </div>
-
-            <div className="text-4xl font-black tracking-tight">
-              {trustScore}
-            </div>
-            <p className="text-xs text-white/60">
-              Verified campus account in good standing. Handover completion
-              grants +1.0 trust bonus.
-            </p>
-
-            {/* Progress Bar */}
-            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full"
-                style={{ width: `${Math.min(100, parseFloat(trustScore))}%` }}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
-              <div className="p-2 bg-white/5 rounded-xl">
-                <div className="font-bold text-white">{activeReportsCount}</div>
-                <div className="text-[10px] text-white/40">Reports</div>
-              </div>
-              <div className="p-2 bg-white/5 rounded-xl">
-                <div className="font-bold text-white">{userClaims.length}</div>
-                <div className="text-[10px] text-white/40">Claims</div>
-              </div>
-              <div className="p-2 bg-white/5 rounded-xl">
-                <div className="font-bold text-white">100%</div>
-                <div className="text-[10px] text-white/40">Reliability</div>
-              </div>
-            </div>
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-800 mt-4">
+            <Link
+              to="/dashboard/scan-qr"
+              className="w-full py-2.5 bg-gray-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-xl text-xs font-bold text-center block transition-colors shadow-xs"
+            >
+              Verify Handover Code (OTP/QR)
+            </Link>
           </div>
         </div>
       </div>

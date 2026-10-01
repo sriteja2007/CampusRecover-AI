@@ -1,15 +1,16 @@
-import { Timestamp } from "firebase/firestore"
-
-export type NotificationType = "match" | "message" | "system" | "status_update"
+export type NotificationType = "match" | "contact" | "handover" | "message" | "system" | "status_update"
 
 export interface Notification {
   id: string
   userId: string
   title: string
-  body: string
+  message: string
+  body?: string // alias for message
   type: NotificationType
+  relatedItemId?: string
+  relatedMatchId?: string
   read: boolean
-  actionUrl: string | null
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  actionUrl?: string | null
+  createdAt: any
+  updatedAt?: any
 }

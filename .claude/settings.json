@@ -1,0 +1,7 @@
+{ 
+  "env": { 
+    "ANTHROPIC_BASE_URL": "http://localhost:20128/v1", 
+    "ANTHROPIC_AUTH_TOKEN": "sk-d8e0742b21e8e158-21e4fb-66f4dca1", 
+    "ANTHROPIC_MODEL": "gemini/gemini-3.7-flash,gemini/gemini-3.1-flash-lite,nvidia/z-ai/glm-5.2,nvidia/minimaxai/minimax-m2.7" 
+  } 
+}

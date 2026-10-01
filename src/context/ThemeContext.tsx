@@ -30,7 +30,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
-    return "system"
+    return "light"
   })
 
   const [systemDark, setSystemDark] = useState<boolean>(() => {

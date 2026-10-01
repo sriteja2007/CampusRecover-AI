@@ -29,7 +29,9 @@ export interface Meeting {
 const MEETINGS_COLLECTION = "meetings"
 
 export const MeetingService = {
-  async requestMeeting(data: Omit<Meeting, "id" | "status" | "createdAt" | "updatedAt">): Promise<string> {
+  async requestMeeting(
+    data: Omit<Meeting, "id" | "status" | "createdAt" | "updatedAt">,
+  ): Promise<string> {
     const meetingRef = doc(collection(db, MEETINGS_COLLECTION))
     await setDoc(meetingRef, {
       ...data,
@@ -41,7 +43,11 @@ export const MeetingService = {
     return meetingRef.id
   },
 
-  async updateMeetingStatus(meetingId: string, status: Meeting["status"], notes?: string): Promise<void> {
+  async updateMeetingStatus(
+    meetingId: string,
+    status: Meeting["status"],
+    notes?: string,
+  ): Promise<void> {
     const meetingRef = doc(db, MEETINGS_COLLECTION, meetingId)
     const updateData: any = {
       status,

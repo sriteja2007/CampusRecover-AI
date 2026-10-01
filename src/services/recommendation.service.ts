@@ -13,7 +13,7 @@ export const RecommendationService = {
       COLLECTIONS.LOST_ITEMS,
       where("status", "in", ["pending", "matched"]),
       orderBy("createdAt", "desc"),
-      limit(maxItems)
+      limit(maxItems),
     )
   },
 
@@ -25,7 +25,7 @@ export const RecommendationService = {
       COLLECTIONS.FOUND_ITEMS,
       where("status", "in", ["pending", "matched"]),
       orderBy("createdAt", "desc"),
-      limit(maxItems)
+      limit(maxItems),
     )
   },
 
@@ -37,37 +37,52 @@ export const RecommendationService = {
   async getSimilarItems(
     item: LostItem | FoundItem,
     itemType: "lost" | "found",
-    maxItems: number = 4
+    maxItems: number = 4,
   ): Promise<(LostItem | FoundItem)[]> {
-    const targetCollection = itemType === "lost" ? COLLECTIONS.FOUND_ITEMS : COLLECTIONS.LOST_ITEMS;
-    
+    const targetCollection =
+      itemType === "lost" ? COLLECTIONS.FOUND_ITEMS : COLLECTIONS.LOST_ITEMS
+
     // Primary query by category
-    const similarItems = await FirestoreService.queryCollection<LostItem | FoundItem>(
-      targetCollection,
-      where("status", "in", ["pending", "matched"]),
-      where("category", "==", item.category),
-      orderBy("createdAt", "desc"),
-      limit(20)
-    )
+    const similarItems =
+      await FirestoreService.queryCollection<LostItem | FoundItem>(
+        targetCollection,
+        where("status", "in", ["pending", "matched"]),
+        where("category", "==", item.category),
+        orderBy("createdAt", "desc"),
+        limit(20),
+      )
 
     // Sort further by color match or building
     const locationField = itemType === "lost" ? "locationFound" : "locationLost"
-    const myLocation = itemType === "lost" ? (item as LostItem).locationLost : (item as FoundItem).locationFound
+    const myLocation =
+      itemType === "lost"
+        ? (item as LostItem).locationLost
+        : (item as FoundItem).locationFound
 
     const scoredItems = similarItems
       .filter((sim) => sim.id !== item.id)
       .map((sim) => {
-        let score = 0;
-        if (sim.color && item.color && sim.color.toLowerCase() === item.color.toLowerCase()) score += 2;
-        
-        const simLoc = (sim as any)[locationField] || "";
-        if (simLoc && myLocation && simLoc.toLowerCase() === myLocation.toLowerCase()) score += 1;
-        
-        return { item: sim, score };
+        let score = 0
+        if (
+          sim.color &&
+          item.color &&
+          sim.color.toLowerCase() === item.color.toLowerCase()
+        )
+          score += 2
+
+        const simLoc = (sim as any)[locationField] || ""
+        if (
+          simLoc &&
+          myLocation &&
+          simLoc.toLowerCase() === myLocation.toLowerCase()
+        )
+          score += 1
+
+        return { item: sim, score }
       })
-      
+
     scoredItems.sort((a, b) => b.score - a.score)
-    
-    return scoredItems.slice(0, maxItems).map(s => s.item);
-  }
+
+    return scoredItems.slice(0, maxItems).map((s) => s.item)
+  },
 }

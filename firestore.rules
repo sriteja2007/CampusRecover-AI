@@ -11,16 +11,20 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function getUserDoc() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return exists(getUserDoc()) ? get(getUserDoc()).data : null;
     }
 
     function hasRole(role) {
-      return isSignedIn() && getUserData().role == role;
+      return isSignedIn() && exists(getUserDoc()) && getUserData().role == role;
     }
 
     function isAdmin() {
-      return isSignedIn() && (getUserData().role == 'admin' || getUserData().role == 'superadmin');
+      return isSignedIn() && exists(getUserDoc()) && (getUserData().role == 'admin' || getUserData().role == 'superadmin');
     }
 
     function isSecurity() {
@@ -32,7 +36,7 @@ service cloud.firestore {
     }
 
     function isNotBanned() {
-      return isSignedIn() && (getUserData().isBanned != true);
+      return isSignedIn() && (!exists(getUserDoc()) || getUserData().isBanned != true);
     }
 
     // Users collection
@@ -43,36 +47,46 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Primary Unified Items collection for CampusRecover AI
+    match /items/{itemId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
     // Lost Items
     match /lostItems/{itemId} {
       allow read: if true;
-      allow create: if isSignedIn() && isNotBanned() && request.resource.data.userId == request.auth.uid;
-      allow update: if (isSignedIn() && resource.data.userId == request.auth.uid) || isSecurity() || isAdmin();
+      allow create: if isSignedIn() && isNotBanned();
+      allow update: if isSignedIn();
       allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
     }
 
     // Found Items
     match /foundItems/{itemId} {
       allow read: if true;
-      allow create: if isSignedIn() && isNotBanned() && request.resource.data.userId == request.auth.uid;
-      allow update: if (isSignedIn() && resource.data.userId == request.auth.uid) || isSecurity() || isAdmin();
+      allow create: if isSignedIn() && isNotBanned();
+      allow update: if isSignedIn();
       allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
     }
 
     // Matches
     match /matches/{matchId} {
-      allow read: if isSignedIn() && (
-        resource.data.lostUserId == request.auth.uid ||
-        resource.data.foundUserId == request.auth.uid ||
-        isAdmin()
-      );
+      allow read: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        resource.data.lostUserId == request.auth.uid ||
-        resource.data.foundUserId == request.auth.uid ||
-        isAdmin()
-      );
+      allow update: if isSignedIn();
       allow delete: if isAdmin();
+    }
+
+    // Contact Requests
+    match /contactRequests/{requestId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Handovers & Verification
+    match /handovers/{handoverId} {
+      allow read, write: if isSignedIn();
     }
 
     // AI Results

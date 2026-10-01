@@ -36,8 +36,8 @@ html, body, #root {
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background-color: #faf8ff;
-  color: #131b2e;
+  background-color: #f8fafc;
+  color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -48,6 +48,40 @@ html.dark body,
 [data-theme="dark"] body {
   background-color: #0b0f19;
   color: #f1f5f9;
+}
+
+/* Universal High-Contrast Form Inputs & Controls */
+input, select, textarea {
+  color: #0f172a;
+  background-color: #ffffff;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+.dark input, .dark select, .dark textarea {
+  color: #f8fafc !important;
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+/* Fallback for inputs placed directly on white card surfaces */
+.bg-white input:not([type="checkbox"]):not([type="radio"]),
+.bg-white select,
+.bg-white textarea {
+  color: #0f172a !important;
+}
+
+.bg-white input::placeholder,
+.bg-white textarea::placeholder {
+  color: #64748b !important;
 }
 
 /* WCAG Accessible Focus Rings */

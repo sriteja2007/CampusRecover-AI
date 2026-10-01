@@ -1,8 +1,10 @@
 export const COLLECTIONS = {
   USERS: "users",
+  ITEMS: "items",
   LOST_ITEMS: "lostItems",
   FOUND_ITEMS: "foundItems",
   MATCHES: "matches",
+  HANDOVERS: "handovers",
   AI_RESULTS: "aiResults",
   FRAUD_REPORTS: "fraudReports",
   MATCHING_QUEUE: "matching_queue",

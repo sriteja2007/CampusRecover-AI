@@ -126,21 +126,21 @@ export default function AuditLogs() {
         <div className="flex items-center gap-3">
           <Link
             to="/admin"
-            className="p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-[#131b2e] tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
               Campus Handover Audit Logs
             </h1>
-            <p className="text-xs md:text-sm text-gray-500 mt-0.5">
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               Live tamper-evident event stream from Firestore{" "}
-              <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
+              <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-gray-700 dark:text-gray-300">
                 handoverLogs
               </code>{" "}
               &{" "}
-              <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
+              <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-gray-700 dark:text-gray-300">
                 verificationLogs
               </code>
             </p>
@@ -150,7 +150,7 @@ export default function AuditLogs() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer"
           >
             <Download size={13} /> Export CSV
           </button>
@@ -158,18 +158,18 @@ export default function AuditLogs() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs mb-6 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xs mb-6 flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="relative w-full md:w-80">
           <Search
             size={15}
-            className="text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"
+            className="text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2"
           />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by event, actor, or item..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-xs outline-none"
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:bg-white dark:focus:bg-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-xs outline-none font-medium"
           />
         </div>
 
@@ -178,10 +178,10 @@ export default function AuditLogs() {
             <button
               key={t}
               onClick={() => setFilterType(t)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-colors ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-colors cursor-pointer ${
                 filterType === t
-                  ? "bg-[#131b2e] text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
             >
               {t === "all" ? "All Events" : t}
@@ -191,8 +191,8 @@ export default function AuditLogs() {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="grid grid-cols-12 gap-3 p-3 px-5 bg-gray-50 border-b border-gray-200 text-[11px] font-black uppercase text-gray-500 tracking-wider">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="grid grid-cols-12 gap-3 p-3 px-5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 text-[11px] font-black uppercase text-gray-500 dark:text-gray-400 tracking-wider">
           <span className="col-span-2">Event ID</span>
           <span className="col-span-2">Type</span>
           <span className="col-span-2">Actor</span>
@@ -203,23 +203,23 @@ export default function AuditLogs() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 size={28} className="animate-spin text-blue-600 mb-2" />
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               Loading audit records from Firestore...
             </span>
           </div>
         ) : filteredEvents.length === 0 ? (
-          <div className="p-12 text-center text-xs text-gray-500">
-            <Shield size={36} className="text-gray-300 mx-auto mb-2" />
+          <div className="p-12 text-center text-xs text-gray-500 dark:text-gray-400">
+            <Shield size={36} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
             No audit logs found matching your criteria.
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 text-xs">
+          <div className="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
             {filteredEvents.map((evt) => (
               <div
                 key={evt.id}
-                className="grid grid-cols-12 gap-3 p-4 px-5 hover:bg-gray-50/80 transition-colors items-center"
+                className="grid grid-cols-12 gap-3 p-4 px-5 hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors items-center"
               >
-                <span className="col-span-2 font-mono font-bold text-gray-600 truncate">
+                <span className="col-span-2 font-mono font-bold text-gray-600 dark:text-gray-400 truncate">
                   {evt.id}
                 </span>
 
@@ -228,25 +228,25 @@ export default function AuditLogs() {
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ backgroundColor: evt.color }}
                   />
-                  <span className="font-bold text-[#131b2e] capitalize truncate">
+                  <span className="font-bold text-gray-900 dark:text-white capitalize truncate">
                     {evt.type.replace("_", " ")}
                   </span>
                 </div>
 
-                <span className="col-span-2 text-gray-700 truncate font-medium">
+                <span className="col-span-2 text-gray-700 dark:text-gray-300 truncate font-medium">
                   {evt.actor}
                 </span>
 
                 <div className="col-span-3 min-w-0">
-                  <div className="font-bold text-[#131b2e] truncate">
+                  <div className="font-bold text-gray-900 dark:text-white truncate">
                     {evt.target}
                   </div>
-                  <div className="text-[11px] text-gray-500 truncate">
+                  <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                     {evt.details}
                   </div>
                 </div>
 
-                <span className="col-span-3 text-right text-[11px] font-mono text-gray-400">
+                <span className="col-span-3 text-right text-[11px] font-mono text-gray-400 dark:text-gray-500">
                   {evt.time}
                 </span>
               </div>
@@ -254,7 +254,7 @@ export default function AuditLogs() {
           </div>
         )}
 
-        <div className="p-3 px-5 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex justify-between items-center">
+        <div className="p-3 px-5 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400 flex justify-between items-center">
           <span>Total Logged Events: {filteredEvents.length}</span>
           <span className="text-[11px]">
             Audit Engine: Connected to Firestore Realtime

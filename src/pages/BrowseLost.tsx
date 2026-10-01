@@ -58,8 +58,11 @@ const ItemCard = memo(function ItemCard({
 
   if (view === "list") {
     return (
-      <Link to={`/dashboard/item/lost/${item.id}`} className="flex gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-        <div className="w-20 h-20 rounded-xl bg-gray-100 flex-shrink-0 border border-gray-200 overflow-hidden">
+      <Link
+        to={`/dashboard/item/lost/${item.id}`}
+        className="flex gap-4 p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+      >
+        <div className="w-20 h-20 rounded-xl bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-200 dark:border-gray-700 overflow-hidden">
           {thumb ? (
             <img
               src={thumb}
@@ -69,14 +72,14 @@ const ItemCard = memo(function ItemCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Package size={20} className="text-gray-300" />
+              <Package size={20} className="text-gray-400 dark:text-gray-500" />
             </div>
           )}
         </div>
         <div className="flex flex-col justify-between py-0.5 flex-1 min-w-0">
           <div>
             <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-bold text-[#131b2e] group-hover:text-blue-600 transition-colors line-clamp-1">
+              <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                 {item.title}
               </h3>
               <span
@@ -85,26 +88,26 @@ const ItemCard = memo(function ItemCard({
                 {st.label}
               </span>
             </div>
-            <p className="text-xs text-gray-500 line-clamp-1 mb-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mb-1">
               {item.description}
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <MapPin size={12} />
               {item.locationLost}
             </div>
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <Clock size={12} />
               {timeAgo}
             </div>
             {item.brand && (
-              <span className="text-xs text-blue-600 font-medium">
+              <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                 {item.brand}
               </span>
             )}
             {item.rewardOffered && (
-              <span className="text-xs text-emerald-600 font-bold">
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
                 🎁 {item.rewardOffered}
               </span>
             )}
@@ -115,8 +118,11 @@ const ItemCard = memo(function ItemCard({
   }
 
   return (
-    <Link to={`/dashboard/item/lost/${item.id}`} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group overflow-hidden block">
-      <div className="aspect-[4/3] bg-gray-100 overflow-hidden">
+    <Link
+      to={`/dashboard/item/lost/${item.id}`}
+      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer group overflow-hidden block"
+    >
+      <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-800 overflow-hidden">
         {thumb ? (
           <img
             src={thumb}
@@ -126,13 +132,13 @@ const ItemCard = memo(function ItemCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package size={32} className="text-gray-300" />
+            <Package size={32} className="text-gray-400 dark:text-gray-500" />
           </div>
         )}
       </div>
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-bold text-sm text-[#131b2e] group-hover:text-blue-600 transition-colors line-clamp-1">
+          <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
             {item.title}
           </h3>
           <span
@@ -141,17 +147,17 @@ const ItemCard = memo(function ItemCard({
             {st.label}
           </span>
         </div>
-        <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
           {item.description}
         </p>
-        <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-1">
           <MapPin size={11} />
           {item.locationLost}
         </div>
         <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-gray-400">{timeAgo}</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">{timeAgo}</span>
           {item.rewardOffered && (
-            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/50">
               🎁 {item.rewardOffered}
             </span>
           )}
@@ -269,25 +275,25 @@ export default function BrowseLost() {
     <div className="max-w-6xl mx-auto px-6 py-8 md:py-12">
       {/* Breadcrumb */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-          <Link to="/dashboard" className="hover:text-blue-600">
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
+          <Link to="/dashboard" className="hover:text-blue-600 dark:hover:text-blue-400">
             Dashboard
           </Link>
           <ChevronRight size={14} />
-          <span className="text-gray-900 font-medium">Lost Items</span>
+          <span className="text-gray-900 dark:text-white font-medium">Lost Items</span>
         </div>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-[#131b2e] tracking-tight">
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
               Lost Items
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
               {total} items reported · Search and help find owners
             </p>
           </div>
           <Link
             to="/dashboard/report-lost"
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl text-sm hover:bg-blue-700 transition-colors shadow-md"
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl text-sm hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20"
           >
             <Package size={15} /> Report Lost
           </Link>
@@ -298,7 +304,7 @@ export default function BrowseLost() {
       <div className="flex flex-col md:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
             size={18}
           />
           <input
@@ -306,16 +312,16 @@ export default function BrowseLost() {
             placeholder="Search by name, brand, description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium"
           />
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-colors border ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-colors border cursor-pointer ${
               showFilters || activeFilterCount > 0
-                ? "bg-blue-50 border-blue-200 text-blue-700"
-                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                ? "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300"
+                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
             }`}
           >
             <Filter size={16} /> Filters{" "}
@@ -325,23 +331,23 @@ export default function BrowseLost() {
               </span>
             )}
           </button>
-          <div className="flex border border-gray-200 rounded-xl overflow-hidden">
+          <div className="flex border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
             <button
               onClick={() => setView("grid")}
-              className={`p-2.5 ${
+              className={`p-2.5 cursor-pointer ${
                 view === "grid"
-                  ? "bg-blue-50 text-blue-600"
-                  : "bg-white text-gray-400 hover:bg-gray-50"
+                  ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
+                  : "bg-white dark:bg-gray-800 text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >
               <Grid3X3 size={16} />
             </button>
             <button
               onClick={() => setView("list")}
-              className={`p-2.5 ${
+              className={`p-2.5 cursor-pointer ${
                 view === "list"
-                  ? "bg-blue-50 text-blue-600"
-                  : "bg-white text-gray-400 hover:bg-gray-50"
+                  ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
+                  : "bg-white dark:bg-gray-800 text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >
               <List size={16} />
@@ -352,15 +358,15 @@ export default function BrowseLost() {
 
       {/* Filter Panel */}
       {showFilters && (
-        <div className="mb-6 p-5 bg-white rounded-2xl border border-gray-200 shadow-sm">
+        <div className="mb-6 p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-[#131b2e]">
+            <span className="text-sm font-bold text-gray-900 dark:text-white">
               Filter Results
             </span>
             {activeFilterCount > 0 && (
               <button
                 onClick={clearFilters}
-                className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1"
+                className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <X size={12} /> Clear all
               </button>
@@ -368,13 +374,13 @@ export default function BrowseLost() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                 Category
               </label>
               <select
                 value={filters.category || ""}
                 onChange={(e) => applyFilter("category", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
               >
                 <option value="">All</option>
                 {CATEGORY_OPTIONS.map((c) => (
@@ -385,13 +391,13 @@ export default function BrowseLost() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                 Color
               </label>
               <select
                 value={filters.color || ""}
                 onChange={(e) => applyFilter("color", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
               >
                 <option value="">All</option>
                 {COLOR_OPTIONS.map((c) => (
@@ -402,13 +408,13 @@ export default function BrowseLost() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                 Status
               </label>
               <select
                 value={filters.status || ""}
                 onChange={(e) => applyFilter("status", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
               >
                 <option value="">All</option>
                 <option value="pending">Pending</option>
@@ -418,13 +424,13 @@ export default function BrowseLost() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
                 Location
               </label>
               <select
                 value={filters.location || ""}
                 onChange={(e) => applyFilter("location", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
               >
                 <option value="">All</option>
                 {BUILDING_OPTIONS.map((b) => (

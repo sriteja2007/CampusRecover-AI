@@ -1,67 +1,69 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { DragAndDropUploader } from './DragAndDropUploader';
-import { ImagePreview } from './ImagePreview';
-import { useCloudinaryUpload } from '../../hooks/useCloudinaryUpload';
-import { AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from "react"
+import { DragAndDropUploader } from "./DragAndDropUploader"
+import { ImagePreview } from "./ImagePreview"
+import { useCloudinaryUpload } from "../../hooks/useCloudinaryUpload"
+import { AlertCircle } from "lucide-react"
 
 interface UploadedImage {
-  url: string;
-  publicId: string;
+  url: string
+  publicId: string
 }
 
 interface ImageUploaderProps {
-  onUploadSuccess: (image: UploadedImage | null) => void;
-  initialImage?: UploadedImage;
+  onUploadSuccess: (image: UploadedImage | null) => void
+  initialImage?: UploadedImage
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
   onUploadSuccess,
   initialImage,
 }) => {
-  const { upload, progress, loading, error, clearError } = useCloudinaryUpload();
-  
-  const [uploadedImage, setUploadedImage] = useState<UploadedImage | null>(initialImage || null);
-  const [localFilePreview, setLocalFilePreview] = useState<string | null>(null);
+  const { upload, progress, loading, error, clearError } = useCloudinaryUpload()
+
+  const [uploadedImage, setUploadedImage] = useState<UploadedImage | null>(
+    initialImage || null,
+  )
+  const [localFilePreview, setLocalFilePreview] = useState<string | null>(null)
 
   // Cleanup object URLs to avoid memory leaks
   useEffect(() => {
     return () => {
-      if (localFilePreview) URL.revokeObjectURL(localFilePreview);
-    };
-  }, [localFilePreview]);
+      if (localFilePreview) URL.revokeObjectURL(localFilePreview)
+    }
+  }, [localFilePreview])
 
   const handleDrop = async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length === 0) return;
-    
-    clearError();
-    const file = acceptedFiles[0];
+    if (acceptedFiles.length === 0) return
+
+    clearError()
+    const file = acceptedFiles[0]
 
     // Create local preview
-    const previewUrl = URL.createObjectURL(file);
-    setLocalFilePreview(previewUrl);
+    const previewUrl = URL.createObjectURL(file)
+    setLocalFilePreview(previewUrl)
 
     // Start upload
-    const response = await upload(file);
-    
+    const response = await upload(file)
+
     if (response) {
       const newImage = {
         url: response.secure_url,
         publicId: response.public_id,
-      };
-      setUploadedImage(newImage);
-      onUploadSuccess(newImage);
+      }
+      setUploadedImage(newImage)
+      onUploadSuccess(newImage)
     }
-    
+
     // Clear local preview
-    setLocalFilePreview(null);
-  };
+    setLocalFilePreview(null)
+  }
 
   const handleRemove = useCallback(() => {
-    setUploadedImage(null);
-    onUploadSuccess(null);
-  }, [onUploadSuccess]);
+    setUploadedImage(null)
+    onUploadSuccess(null)
+  }, [onUploadSuccess])
 
-  const hasImage = !!uploadedImage || !!localFilePreview;
+  const hasImage = !!uploadedImage || !!localFilePreview
 
   return (
     <div className="w-full space-y-4">
@@ -98,5 +100,5 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}

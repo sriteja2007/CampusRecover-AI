@@ -278,7 +278,9 @@ export const RealtimeChatService = {
    */
   async blockUser(roomId: string, userId: string): Promise<void> {
     const roomRef = doc(db, ROOMS, roomId)
-    const roomSnap = await getDocs(query(collection(db, ROOMS), where("id", "==", roomId)))
+    const roomSnap = await getDocs(
+      query(collection(db, ROOMS), where("id", "==", roomId)),
+    )
     if (!roomSnap.empty) {
       const currentBlocked = roomSnap.docs[0].data().blockedBy || []
       if (!currentBlocked.includes(userId)) {
@@ -294,7 +296,11 @@ export const RealtimeChatService = {
   /**
    * Report a conversation
    */
-  async reportConversation(roomId: string, reportedBy: string, reason: string): Promise<void> {
+  async reportConversation(
+    roomId: string,
+    reportedBy: string,
+    reason: string,
+  ): Promise<void> {
     const reportRef = doc(collection(db, "messageReports"))
     await setDoc(reportRef, {
       id: reportRef.id,
@@ -408,9 +414,7 @@ export const RealtimeChatService = {
       where("participants", "array-contains", userId),
     )
     const snapshot = await getDocs(q)
-    return snapshot.docs.map(
-      (d) => ({ id: d.id, ...d.data() }) as ChatRoom,
-    )
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as ChatRoom)
   },
 
   /**

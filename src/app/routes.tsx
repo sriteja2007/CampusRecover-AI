@@ -78,7 +78,7 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  // Redirect legacy /app paths
+  // Redirect legacy /app paths & direct top-level convenience routes
   {
     path: "/app/*",
     element: <Navigate to="/dashboard" replace />,
@@ -87,6 +87,14 @@ export const router = createBrowserRouter([
     path: "/app",
     element: <Navigate to="/dashboard" replace />,
   },
+  { path: "/search", element: <Navigate to="/dashboard/search" replace /> },
+  { path: "/my-reports", element: <Navigate to="/dashboard/my-reports" replace /> },
+  { path: "/my-entries", element: <Navigate to="/dashboard/my-reports" replace /> },
+  { path: "/report-lost", element: <Navigate to="/dashboard/report-lost" replace /> },
+  { path: "/report-found", element: <Navigate to="/dashboard/report-found" replace /> },
+  { path: "/ai-match", element: <Navigate to="/dashboard/ai-match" replace /> },
+  { path: "/matches", element: <Navigate to="/dashboard/ai-match" replace /> },
+  { path: "/verify", element: <Navigate to="/dashboard/scan-qr" replace /> },
   {
     path: "/dashboard",
     errorElement: <RouteErrorBoundary />,
@@ -98,6 +106,10 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: suspenseWrap(Dashboard, <SkeletonDashboard />) },
       { path: "profile", element: suspenseWrap(Profile) },
+      {
+        path: "search",
+        element: suspenseWrap(BrowseItems, <SkeletonGrid count={6} />),
+      },
       {
         path: "lost",
         element: suspenseWrap(BrowseLost, <SkeletonGrid count={6} />),
@@ -117,6 +129,7 @@ export const router = createBrowserRouter([
       { path: "campus-office", element: suspenseWrap(CampusOffice) },
       { path: "claim-success", element: suspenseWrap(ClaimSuccess) },
       { path: "scan-qr", element: suspenseWrap(QRVerification) },
+      { path: "verify", element: suspenseWrap(QRVerification) },
       { path: "generate-otp", element: suspenseWrap(QRVerification) },
       { path: "approve-handover", element: suspenseWrap(QRVerification) },
 

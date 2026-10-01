@@ -338,15 +338,28 @@ export default function Chat() {
 
   const handleReportConversation = async () => {
     if (!activeRoomId || !user) return
-    await RealtimeChatService.reportConversation(activeRoomId, user.uid, "Inappropriate behavior")
+    await RealtimeChatService.reportConversation(
+      activeRoomId,
+      user.uid,
+      "Inappropriate behavior",
+    )
     setShowMenu(false)
   }
 
   const handleScheduleMeeting = async () => {
-    if (!activeRoomId || !user || !meetingDate || !meetingTime || !meetingOffice) return
+    if (
+      !activeRoomId ||
+      !user ||
+      !meetingDate ||
+      !meetingTime ||
+      !meetingOffice
+    )
+      return
     setScheduling(true)
     try {
-      const officeTitle = SAFE_CAMPUS_SPOTS.find(s => s.address === meetingOffice)?.title || meetingOffice
+      const officeTitle =
+        SAFE_CAMPUS_SPOTS.find((s) => s.address === meetingOffice)?.title ||
+        meetingOffice
       await MeetingService.requestMeeting({
         matchId: activeRoom?.matchId || "",
         roomId: activeRoomId,
@@ -514,10 +527,10 @@ export default function Chat() {
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-[#131b2e] tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
               Messages
             </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               Secure campus chat with voice notes, photo attachments, and safe
               meeting spot coordination.
             </p>
@@ -525,18 +538,18 @@ export default function Chat() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex h-[640px]">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex h-[640px]">
         {/* Sidebar */}
         <div
-          className={`w-full md:w-80 border-r border-gray-200 flex flex-col bg-white ${
+          className={`w-full md:w-80 border-r border-gray-200 dark:border-gray-800 flex flex-col bg-white dark:bg-gray-900 ${
             showMobileList ? "flex" : "hidden md:flex"
           }`}
         >
           {/* Search bar */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-800">
             <div className="relative">
               <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
                 size={15}
               />
               <input
@@ -544,26 +557,26 @@ export default function Chat() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search conversations..."
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-gray-100 border-transparent focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs"
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:bg-white dark:focus:bg-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs font-medium"
               />
             </div>
           </div>
 
           {/* Rooms list */}
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
             {loadingRooms ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <Loader2
                   size={24}
                   className="animate-spin text-emerald-600 mb-2"
                 />
-                <span className="text-xs text-gray-400">Loading chats...</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">Loading chats...</span>
               </div>
             ) : filteredRooms.length === 0 ? (
-              <div className="p-8 text-center text-xs text-gray-500">
+              <div className="p-8 text-center text-xs text-gray-500 dark:text-gray-400">
                 <MessageSquare
                   size={32}
-                  className="text-gray-300 mx-auto mb-2"
+                  className="text-gray-300 dark:text-gray-600 mx-auto mb-2"
                 />
                 No messages yet. When an AI match is found, initiate chat
                 directly here.
@@ -584,8 +597,10 @@ export default function Chat() {
                       setActiveRoomId(room.id)
                       setShowMobileList(false)
                     }}
-                    className={`w-full text-left p-4 flex gap-3 transition-colors ${
-                      isActive ? "bg-emerald-50/70" : "hover:bg-gray-50"
+                    className={`w-full text-left p-4 flex gap-3 transition-colors cursor-pointer ${
+                      isActive
+                        ? "bg-emerald-50/70 dark:bg-emerald-950/40"
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800/60"
                     }`}
                   >
                     <div className="relative flex-shrink-0">
@@ -593,10 +608,10 @@ export default function Chat() {
                         <img
                           src={photo}
                           alt={name}
-                          className="w-11 h-11 rounded-full object-cover border border-gray-200"
+                          className="w-11 h-11 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                         />
                       ) : (
-                        <div className="w-11 h-11 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                        <div className="w-11 h-11 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-sm">
                           {name.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -604,22 +619,22 @@ export default function Chat() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-0.5">
-                        <h4 className="font-bold text-[#131b2e] text-sm truncate">
+                        <h4 className="font-bold text-gray-900 dark:text-white text-sm truncate">
                           {name}
                         </h4>
-                        <span className="text-[10px] text-gray-400 flex-shrink-0">
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">
                           {room.lastMessageTime
                             ? formatDateLabel(room.lastMessageTime)
                             : ""}
                         </span>
                       </div>
 
-                      <p className="text-xs text-gray-500 truncate mb-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">
                         {room.lastMessage || room.itemTitle || "Start chatting"}
                       </p>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full truncate max-w-[140px]">
+                        <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full truncate max-w-[140px]">
                           {room.itemTitle}
                         </span>
                         {unread > 0 && (
@@ -638,19 +653,19 @@ export default function Chat() {
 
         {/* Chat Area */}
         <div
-          className={`flex-1 flex flex-col h-full bg-gray-50 ${
+          className={`flex-1 flex flex-col h-full bg-gray-50 dark:bg-gray-950 ${
             !showMobileList ? "flex" : "hidden md:flex"
           }`}
         >
           {!activeRoom ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
                 <MessageSquare size={32} />
               </div>
-              <h3 className="font-bold text-[#131b2e] text-base mb-1">
+              <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">
                 Select a conversation
               </h3>
-              <p className="text-xs text-gray-500 max-w-sm">
+              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
                 Choose a conversation on the left or connect with a finder from
                 the AI Match page.
               </p>
@@ -658,11 +673,11 @@ export default function Chat() {
           ) : (
             <>
               {/* Active Room Top Bar */}
-              <div className="p-3.5 px-5 border-b border-gray-200 bg-white flex justify-between items-center shadow-xs">
+              <div className="p-3.5 px-5 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex justify-between items-center shadow-xs">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowMobileList(true)}
-                    className="md:hidden p-1.5 -ml-2 text-gray-400 hover:text-gray-700"
+                    className="md:hidden p-1.5 -ml-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer"
                   >
                     <ChevronRight size={20} className="rotate-180" />
                   </button>
@@ -672,34 +687,34 @@ export default function Chat() {
                       <img
                         src={otherUserPhoto}
                         alt={otherUserName}
-                        className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                        className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-sm">
                         {otherUserName.charAt(0).toUpperCase()}
                       </div>
                     )}
                     {/* Live Online Badge */}
                     <div
-                      className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                        otherOnline ? "bg-emerald-500" : "bg-gray-300"
+                      className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-900 ${
+                        otherOnline ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
                       }`}
                     />
                   </div>
 
                   <div>
-                    <h3 className="font-bold text-[#131b2e] text-sm flex items-center gap-2">
+                    <h3 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                       {otherUserName}
                     </h3>
                     <p
                       className={`text-[11px] font-medium ${
                         otherOnline
-                          ? "text-emerald-600 font-bold"
-                          : "text-gray-400"
+                          ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                          : "text-gray-400 dark:text-gray-500"
                       }`}
                     >
                       {typingUsers.length > 0 ? (
-                        <span className="text-emerald-600 animate-pulse">
+                        <span className="text-emerald-600 dark:text-emerald-400 animate-pulse">
                           Typing...
                         </span>
                       ) : otherOnline ? (
@@ -712,12 +727,12 @@ export default function Chat() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline-block text-xs bg-purple-50 text-purple-700 font-bold px-3 py-1 rounded-full border border-purple-100">
+                  <span className="hidden sm:inline-block text-xs bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-100 dark:border-purple-800">
                     {activeRoom.itemTitle}
                   </span>
                   <button
                     onClick={() => setShowLocationPicker(!showLocationPicker)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors text-xs font-bold rounded-xl border border-blue-200"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors text-xs font-bold rounded-xl border border-blue-200 dark:border-blue-800 cursor-pointer"
                     title="Suggest a safe campus meeting point"
                   >
                     <MapPin size={13} />
@@ -731,9 +746,7 @@ export default function Chat() {
                     title="Schedule Handover Meeting"
                   >
                     <Calendar size={13} />
-                    <span className="hidden sm:inline">
-                      Schedule Meeting
-                    </span>
+                    <span className="hidden sm:inline">Schedule Meeting</span>
                   </button>
                   <div className="relative">
                     <button
@@ -946,17 +959,21 @@ export default function Chat() {
                           )}
 
                           {/* Text message content */}
-                            {msg.type === "pdf" && (
-                              <a href={msg.pdfUrl} download={msg.pdfName} className="flex items-center gap-2 text-blue-100 hover:underline">
-                                <FileText size={24} />
-                                <span>{msg.pdfName}</span>
-                              </a>
-                            )}
-                            {msg.text && (
-                              <p className="text-[13px] leading-relaxed break-words mt-1">
-                                {msg.text}
-                              </p>
-                            )}
+                          {msg.type === "pdf" && (
+                            <a
+                              href={msg.pdfUrl}
+                              download={msg.pdfName}
+                              className="flex items-center gap-2 text-blue-100 hover:underline"
+                            >
+                              <FileText size={24} />
+                              <span>{msg.pdfName}</span>
+                            </a>
+                          )}
+                          {msg.text && (
+                            <p className="text-[13px] leading-relaxed break-words mt-1">
+                              {msg.text}
+                            </p>
+                          )}
 
                           {/* Timestamp and Read Status */}
                           <div
@@ -1014,24 +1031,24 @@ export default function Chat() {
               </div>
 
               {/* Chat Input Toolbar */}
-              <div className="p-3.5 bg-white border-t border-gray-200">
+              <div className="p-3.5 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
                 {isRecording ? (
                   /* Live Recording View */
-                  <div className="flex items-center gap-3 p-2 bg-red-50 rounded-2xl border border-red-200">
+                  <div className="flex items-center gap-3 p-2 bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-200 dark:border-red-800">
                     <div className="w-3 h-3 rounded-full bg-red-500 animate-ping ml-2" />
-                    <span className="text-xs font-bold text-red-700">
+                    <span className="text-xs font-bold text-red-700 dark:text-red-300">
                       Recording Voice Note: {recordingSeconds}s
                     </span>
                     <div className="flex-1" />
                     <button
                       onClick={cancelRecording}
-                      className="px-3 py-1 text-xs font-bold text-gray-600 hover:text-red-700 transition-colors"
+                      className="px-3 py-1 text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-red-700 dark:hover:text-red-300 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={stopAndSendRecording}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
                     >
                       <Square size={13} /> Send Voice Note
                     </button>
@@ -1041,7 +1058,7 @@ export default function Chat() {
                   <div className="flex items-end gap-2">
                     {/* Image Attachment Button */}
                     <label
-                      className={`p-2.5 text-gray-500 hover:text-emerald-600 transition-colors bg-gray-100 hover:bg-gray-200 rounded-xl cursor-pointer flex-shrink-0 ${
+                      className={`p-2.5 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl cursor-pointer flex-shrink-0 ${
                         uploadingImage ? "opacity-50" : ""
                       }`}
                       title="Attach Photo"
@@ -1065,13 +1082,16 @@ export default function Chat() {
 
                     {/* PDF Attachment Button */}
                     <label
-                      className={`p-2.5 text-gray-500 hover:text-emerald-600 transition-colors bg-gray-100 hover:bg-gray-200 rounded-xl cursor-pointer flex-shrink-0 ${
+                      className={`p-2.5 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl cursor-pointer flex-shrink-0 ${
                         uploadingPdf ? "opacity-50" : ""
                       }`}
                       title="Attach PDF"
                     >
                       {uploadingPdf ? (
-                        <Loader2 size={18} className="animate-spin text-emerald-600" />
+                        <Loader2
+                          size={18}
+                          className="animate-spin text-emerald-600"
+                        />
                       ) : (
                         <FileText size={18} />
                       )}
@@ -1088,7 +1108,7 @@ export default function Chat() {
                     <button
                       type="button"
                       onClick={startRecording}
-                      className="p-2.5 text-gray-500 hover:text-emerald-600 transition-colors bg-gray-100 hover:bg-gray-200 rounded-xl flex-shrink-0"
+                      className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl flex-shrink-0 cursor-pointer"
                       title="Record Voice Note"
                     >
                       <Mic size={18} />
@@ -1109,14 +1129,14 @@ export default function Chat() {
                           handleSendText()
                         }
                       }}
-                      className="flex-1 max-h-28 p-2.5 px-3.5 bg-gray-100 border-transparent rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs leading-relaxed resize-none transition-all"
+                      className="flex-1 max-h-28 p-2.5 px-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-xl focus:bg-white dark:focus:bg-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-xs leading-relaxed resize-none transition-all font-medium"
                     />
 
-                    {/* Emoji Button (Placeholder) */}
+                    {/* Emoji Button */}
                     <button
                       type="button"
                       onClick={() => setMessageText((prev) => prev + "👍")}
-                      className="p-2.5 text-gray-500 hover:text-emerald-600 transition-colors bg-gray-100 hover:bg-gray-200 rounded-xl flex-shrink-0"
+                      className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl flex-shrink-0 cursor-pointer"
                       title="Add Emoji"
                     >
                       <Smile size={18} />
@@ -1127,7 +1147,7 @@ export default function Chat() {
                       type="button"
                       onClick={handleSendText}
                       disabled={!messageText.trim() || sending}
-                      className="p-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-xs flex-shrink-0"
+                      className="p-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-50 shadow-xs flex-shrink-0 cursor-pointer"
                     >
                       {sending ? (
                         <Loader2 size={17} className="animate-spin" />
@@ -1168,52 +1188,62 @@ export default function Chat() {
       {/* Meeting Scheduler Modal */}
       {showMeetingScheduler && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h3 className="font-bold text-[#131b2e] flex items-center gap-2">
-                <Calendar className="text-emerald-600" size={18} />
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 animate-fade-in-up">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
+              <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Calendar className="text-emerald-600 dark:text-emerald-400" size={18} />
                 Schedule Handover Meeting
               </h3>
               <button
                 onClick={() => setShowMeetingScheduler(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
-            
+
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Select Campus Office</label>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Select Campus Office
+                </label>
                 <select
                   value={meetingOffice}
                   onChange={(e) => setMeetingOffice(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  className="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
                 >
                   <option value="">Choose an office...</option>
-                  {SAFE_CAMPUS_SPOTS.filter(s => s.isCampusOffice).map((spot, i) => (
-                    <option key={i} value={spot.address}>{spot.title}</option>
-                  ))}
+                  {SAFE_CAMPUS_SPOTS.filter((s) => s.isCampusOffice).map(
+                    (spot, i) => (
+                      <option key={i} value={spot.address}>
+                        {spot.title}
+                      </option>
+                    ),
+                  )}
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Date</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Date
+                  </label>
                   <input
                     type="date"
                     value={meetingDate}
                     onChange={(e) => setMeetingDate(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                    className="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Time</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Time
+                  </label>
                   <input
                     type="time"
                     value={meetingTime}
                     onChange={(e) => setMeetingTime(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                    className="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
                   />
                 </div>
               </div>
@@ -1221,10 +1251,16 @@ export default function Chat() {
               <div className="pt-2">
                 <button
                   onClick={handleScheduleMeeting}
-                  disabled={!meetingOffice || !meetingDate || !meetingTime || scheduling}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={
+                    !meetingOffice || !meetingDate || !meetingTime || scheduling
+                  }
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
-                  {scheduling ? <Loader2 size={18} className="animate-spin" /> : "Send Meeting Request"}
+                  {scheduling ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    "Send Meeting Request"
+                  )}
                 </button>
               </div>
             </div>

@@ -58,10 +58,10 @@ export default function Features() {
   return (
     <div className="py-24 max-w-7xl mx-auto px-6">
       <div className="text-center max-w-3xl mx-auto mb-20">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-[#131b2e] tracking-tight mb-6">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-6">
           Enterprise-Grade Recovery System
         </h1>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 dark:text-gray-300">
           Built for modern university campuses, combining state-of-the-art AI
           with rigorous security protocols.
         </p>
@@ -71,17 +71,17 @@ export default function Features() {
         {FEATURES.map((feature, i) => (
           <div
             key={i}
-            className="p-8 rounded-2xl bg-white border border-gray-100 shadow-[0_2px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all"
+            className="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-[0_2px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all"
           >
             <div
               className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 ${feature.color}`}
             >
               <feature.icon size={28} />
             </div>
-            <h3 className="text-xl font-bold text-[#131b2e] mb-3">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
               {feature.title}
             </h3>
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
               {feature.description}
             </p>
           </div>
