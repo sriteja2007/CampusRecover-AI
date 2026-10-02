@@ -1,4 +1,4 @@
-const CACHE_NAME = "campusrecover-v1"
+const CACHE_NAME = "campusrecover-v2"
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json", "/robots.txt"]
 
 // Install Event: Cache app shell

@@ -200,5 +200,25 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Campus Locations (Public Read for MVGR campus map & blocks, Admin Write)
+    match /campusLocations/{locationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Safe Meeting Locations (Public Read for verified handover points, Admin Write)
+    match /meetingLocations/{locationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // User Reports & Content Flags (Admin Read/Update/Delete, Authenticated Unbanned Create)
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && isNotBanned();
+      allow update, delete: if isAdmin();
+    }
   }
 }
+
