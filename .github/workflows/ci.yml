@@ -23,9 +23,6 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Code Formatting Check (oxfmt)
-        run: npm run format
-
       - name: TypeScript Typecheck
         run: npx tsc --noEmit
 
@@ -47,3 +44,6 @@ jobs:
           name: dist-artifact
           path: dist/
           retention-days: 7
+
+      - name: Run Formatter (oxfmt)
+        run: npm run format

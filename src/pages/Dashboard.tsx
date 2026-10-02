@@ -572,7 +572,7 @@ export default function Dashboard() {
             to="/dashboard/my-reports"
             className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
           >
-            View all ({lostCount + foundCount}) <ChevronRight size={14} />
+            View all ({userReports.length}) <ChevronRight size={14} />
           </Link>
         </div>
 

@@ -21,6 +21,7 @@ import { ContentFlag, FlagReason, FlagStatus } from "../types/ContentFlag"
 import { cleanFirestoreData } from "../utils/firestoreUtils"
 
 const LOCAL_FLAGS_CACHE_KEY = "campusrecover_flags_cache"
+const IS_TEST_MODE = import.meta.env.MODE === "test"
 
 function getLocalFlagsCache(): ContentFlag[] {
   if (typeof window === "undefined") return []
@@ -75,23 +76,25 @@ export const SimpleFlagService = {
     const cached = getLocalFlagsCache()
     saveLocalFlagsCache([newFlag, ...cached])
 
-    try {
-      const reportsRef = collection(db, COLLECTIONS.REPORTS)
-      const firestoreData = cleanFirestoreData({
-        ...newFlag,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
+    if (!IS_TEST_MODE) {
+      try {
+        const reportsRef = collection(db, COLLECTIONS.REPORTS)
+        const firestoreData = cleanFirestoreData({
+          ...newFlag,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
 
-      const docRef = await addDoc(reportsRef, firestoreData)
-      newFlag.id = docRef.id
+        const docRef = await addDoc(reportsRef, firestoreData)
+        newFlag.id = docRef.id
 
-      const updated = getLocalFlagsCache().map((f) =>
-        f.id === localId ? { ...f, id: docRef.id } : f,
-      )
-      saveLocalFlagsCache(updated)
-    } catch (err) {
-      console.warn("Firestore flag creation notice:", err)
+        const updated = getLocalFlagsCache().map((f) =>
+          f.id === localId ? { ...f, id: docRef.id } : f,
+        )
+        saveLocalFlagsCache(updated)
+      } catch (err) {
+        console.warn("Firestore flag creation notice:", err)
+      }
     }
 
     return newFlag
@@ -103,23 +106,25 @@ export const SimpleFlagService = {
   async getFlags(status?: FlagStatus): Promise<ContentFlag[]> {
     let flags = getLocalFlagsCache()
 
-    try {
-      const reportsRef = collection(db, COLLECTIONS.REPORTS)
-      const snap = await getDocs(query(reportsRef))
-      if (!snap.empty) {
-        const firestoreFlags = snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        })) as ContentFlag[]
+    if (!IS_TEST_MODE) {
+      try {
+        const reportsRef = collection(db, COLLECTIONS.REPORTS)
+        const snap = await getDocs(query(reportsRef))
+        if (!snap.empty) {
+          const firestoreFlags = snap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          })) as ContentFlag[]
 
-        const map = new Map<string, ContentFlag>()
-        for (const f of flags) map.set(f.id, f)
-        for (const f of firestoreFlags) map.set(f.id, f)
-        flags = Array.from(map.values())
-        saveLocalFlagsCache(flags)
+          const map = new Map<string, ContentFlag>()
+          for (const f of flags) map.set(f.id, f)
+          for (const f of firestoreFlags) map.set(f.id, f)
+          flags = Array.from(map.values())
+          saveLocalFlagsCache(flags)
+        }
+      } catch (err) {
+        console.warn("getFlags Firestore notice:", err)
       }
-    } catch (err) {
-      console.warn("getFlags Firestore notice:", err)
     }
 
     if (status) {
@@ -158,13 +163,15 @@ export const SimpleFlagService = {
     const updated = cached.map((f) => (f.id === flagId ? { ...f, ...updates } : f))
     saveLocalFlagsCache(updated)
 
-    try {
-      await updateDoc(doc(db, COLLECTIONS.REPORTS, flagId), {
-        ...cleanFirestoreData(updates),
-        updatedAt: serverTimestamp(),
-      })
-    } catch (err) {
-      console.warn("resolveFlag Firestore notice:", err)
+    if (!IS_TEST_MODE) {
+      try {
+        await updateDoc(doc(db, COLLECTIONS.REPORTS, flagId), {
+          ...cleanFirestoreData(updates),
+          updatedAt: serverTimestamp(),
+        })
+      } catch (err) {
+        console.warn("resolveFlag Firestore notice:", err)
+      }
     }
   },
 
@@ -174,31 +181,35 @@ export const SimpleFlagService = {
   subscribeToFlags(callback: (flags: ContentFlag[]) => void): () => void {
     callback(getLocalFlagsCache())
 
-    try {
-      const reportsRef = collection(db, COLLECTIONS.REPORTS)
-      return onSnapshot(
-        query(reportsRef),
-        (snap) => {
-          const flags = snap.docs.map((d) => ({
-            id: d.id,
-            ...d.data(),
-          })) as ContentFlag[]
+    if (!IS_TEST_MODE) {
+      try {
+        const reportsRef = collection(db, COLLECTIONS.REPORTS)
+        return onSnapshot(
+          query(reportsRef),
+          (snap) => {
+            const flags = snap.docs.map((d) => ({
+              id: d.id,
+              ...d.data(),
+            })) as ContentFlag[]
 
-          flags.sort((a, b) => {
-            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0
-            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0
-            return timeB - timeA
-          })
+            flags.sort((a, b) => {
+              const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+              const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+              return timeB - timeA
+            })
 
-          saveLocalFlagsCache(flags)
-          callback(flags)
-        },
-        (err) => {
-          console.warn("Flags subscription notice:", err)
-        },
-      )
-    } catch {
-      return () => {}
+            saveLocalFlagsCache(flags)
+            callback(flags)
+          },
+          (err) => {
+            console.warn("Flags subscription notice:", err)
+          },
+        )
+      } catch {
+        return () => {}
+      }
     }
+
+    return () => {}
   },
 }
