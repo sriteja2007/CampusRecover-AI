@@ -20,8 +20,10 @@ import {
 import { useAuth } from "../context/AuthContext"
 import { SimpleItemService, LocationAnalytics } from "../services/simpleItem.service"
 import { SimpleMatchingService } from "../services/simpleMatching.service"
+import { SimpleClaimService } from "../services/simpleClaim.service"
 import { Item } from "../types/Item"
 import { Match } from "../types/Match"
+import { Claim } from "../types/Claim"
 import { Badge } from "../components/ui/Badge"
 import { StatusIndicator } from "../components/ui/StatusIndicator"
 import { ConfidenceGauge } from "../components/ui/ConfidenceGauge"
@@ -31,11 +33,12 @@ export default function Dashboard() {
   const { user, customUser } = useAuth()
 
   const [loading, setLoading] = useState(true)
-  const [lostCount, setLostCount] = useState(0)
-  const [foundCount, setFoundCount] = useState(0)
+  const [activeReportsCount, setActiveReportsCount] = useState(0)
   const [matchCount, setMatchCount] = useState(0)
+  const [claimsCount, setClaimsCount] = useState(0)
   const [recoveredCount, setRecoveredCount] = useState(0)
   const [userReports, setUserReports] = useState<Item[]>([])
+  const [userClaims, setUserClaims] = useState<Claim[]>([])
   const [recentMatches, setRecentMatches] = useState<Match[]>([])
   const [recentCampusItems, setRecentCampusItems] = useState<Item[]>([])
   const [locationStats, setLocationStats] = useState<LocationAnalytics[]>([])
@@ -52,24 +55,30 @@ export default function Dashboard() {
     if (!user?.uid) return
     setLoading(true)
     try {
-      const [userItems, userMatches, allCampusItems, analyticsResult] =
+      const [userItems, userMatches, allCampusItems, analyticsResult, userClaimsData] =
         await Promise.all([
           SimpleItemService.getItemsByUser(user.uid),
           SimpleMatchingService.getUserMatches(user.uid),
           SimpleItemService.getItems(),
           SimpleItemService.getLocationAnalytics(),
+          SimpleClaimService.getClaims({ claimantId: user.uid }),
         ])
 
-      const myLost = userItems.filter((i) => i.type === "LOST")
-      const myFound = userItems.filter((i) => i.type === "FOUND")
+      const active = userItems.filter(
+        (i) => i.status !== "recovered" && i.status !== "closed",
+      )
       const recovered = userItems.filter((i) => i.status === "recovered")
+      const pendingClaims = userClaimsData.filter(
+        (c) => c.status === "pending" || c.status === "under_review" || c.status === "approved",
+      )
 
-      setLostCount(myLost.length)
-      setFoundCount(myFound.length)
+      setActiveReportsCount(active.length)
       setMatchCount(userMatches.length)
+      setClaimsCount(pendingClaims.length)
       setRecoveredCount(recovered.length)
 
       setUserReports(userItems.slice(0, 5))
+      setUserClaims(userClaimsData.slice(0, 3))
       setRecentMatches(userMatches.slice(0, 3))
       setRecentCampusItems(allCampusItems.slice(0, 20))
       setLocationStats(analyticsResult.analytics)
@@ -105,16 +114,16 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-            {getGreeting()}, {displayName}.
+            Welcome back, {displayName}.
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Here&apos;s what&apos;s happening with your recovery activity today.
+            Here&apos;s your active recovery activity across MVGR College of Engineering.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link
-            to="/dashboard/search"
+            to="/items"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-2xs"
           >
             <Search size={14} className="text-slate-400" />
@@ -130,76 +139,136 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 2. Four Elegant Metric Cards */}
+      {/* 2. Four Exact Specification Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* Metric 1: Active Reports */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Lost Reports
+              Active Reports
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <FileWarning size={16} />
             </div>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
-              {lostCount}
+              {activeReportsCount}
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Active search queries</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Under search on campus</p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Found Reports
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-              <CheckCircle2 size={16} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
-              {foundCount}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Reported found items</p>
-          </div>
-        </div>
-
+        {/* Metric 2: Possible Matches */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-              AI Matches
+              Possible Matches
             </span>
             <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
               <Sparkles size={16} />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
+            <div className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 font-mono">
               {matchCount}
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">Potential pairings detected</p>
           </div>
         </div>
 
+        {/* Metric 3: In-Progress Claims */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-              Recovered
+            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              In-Progress Claims
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <ShieldCheck size={16} />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
+            <div className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 font-mono">
+              {claimsCount}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">Ownership verifications</p>
+          </div>
+        </div>
+
+        {/* Metric 4: Items Recovered */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              Items Recovered
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <CheckCircle2 size={16} />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
               {recoveredCount}
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Successfully reunited</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Reunited successfully</p>
           </div>
         </div>
       </div>
+
+      {/* In-Progress Claims Section if User has filed claims */}
+      {userClaims.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <ShieldCheck size={16} className="text-blue-600" />
+              My Ownership Claims Status
+            </h3>
+            <Link
+              to="/dashboard/my-reports"
+              className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline"
+            >
+              View All Claims →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {userClaims.map((c) => (
+              <div
+                key={c.id}
+                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2 text-xs"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-blue-600 text-[11px]">
+                    {c.itemReference || "CR-ITEM"}
+                  </span>
+                  <Badge
+                    variant={
+                      c.status === "approved"
+                        ? "recovered"
+                        : c.status === "rejected"
+                        ? "destructive"
+                        : "purple"
+                    }
+                  >
+                    {c.status.replace("_", " ")}
+                  </Badge>
+                </div>
+                <h4 className="font-bold text-slate-900 dark:text-white truncate">
+                  {c.itemTitle || "Campus Item"}
+                </h4>
+                {c.otpCode && (
+                  <div className="p-2 bg-emerald-50 dark:bg-emerald-950/60 rounded-xl text-center border border-emerald-200 dark:border-emerald-800">
+                    <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold block">
+                      VERIFIED HANDOVER OTP
+                    </span>
+                    <span className="text-base font-black font-mono text-emerald-700 dark:text-emerald-300">
+                      {c.otpCode}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 3. Dashboard Hero Actions: Two Distinct Major Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

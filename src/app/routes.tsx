@@ -60,7 +60,11 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: suspenseWrap(LandingPage) },
+      { path: "items", element: suspenseWrap(BrowseItems, <SkeletonGrid count={6} />) },
+      { path: "items/:id", element: suspenseWrap(ItemDetail) },
+      { path: "browse", element: <Navigate to="/items" replace /> },
       { path: "features", element: suspenseWrap(Features) },
+      { path: "safety", element: suspenseWrap(Features) },
       { path: "how-it-works", element: suspenseWrap(HowItWorks) },
       { path: "about", element: suspenseWrap(About) },
       { path: "contact", element: suspenseWrap(Contact) },

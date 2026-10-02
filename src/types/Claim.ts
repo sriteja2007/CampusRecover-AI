@@ -1,14 +1,34 @@
 import { Timestamp } from "firebase/firestore"
 
-export type ClaimStatus = "pending" | "admin_approved" | "in_handover" | "completed" | "resolved" | "rejected"
+export type ClaimStatus =
+  | "pending"
+  | "under_review"
+  | "admin_approved"
+  | "approved"
+  | "in_handover"
+  | "completed"
+  | "resolved"
+  | "rejected"
 
-export type VerificationMethod = "otp" | "qr" | "purchase_bill" | "serial_number" | "student_id" | "government_id" | "face_verification"
+export type VerificationMethod =
+  | "otp"
+  | "qr"
+  | "purchase_bill"
+  | "serial_number"
+  | "student_id"
+  | "government_id"
+  | "face_verification"
 
 export interface Claim {
   id: string
   matchId?: string
-  lostItemId: string
-  foundItemId: string
+  itemId?: string
+  lostItemId?: string
+  foundItemId?: string
+  itemTitle?: string
+  itemReference?: string
+  itemImageUrl?: string
+  itemType?: "LOST" | "FOUND"
   lostItemTitle?: string
   foundItemTitle?: string
   lostItemImage?: string
@@ -16,12 +36,19 @@ export interface Claim {
   claimerId?: string
   claimantId?: string
   claimerName?: string
+  claimantName?: string
   claimerEmail?: string
+  claimantEmail?: string
+  claimantMobile?: string
   claimerStudentId?: string
-  finderId: string
+  finderId?: string
   finderName?: string
   finderEmail?: string
   status: ClaimStatus
+  reason?: string
+  uniqueCharacteristics?: string
+  privateVerificationDetails?: string
+  contactPreference?: "email" | "phone" | "campus_office"
   proofDescription?: string
   meetingLocation?: string
   scheduledTime?: string
@@ -29,13 +56,16 @@ export interface Claim {
   otpExpiresAt?: Timestamp | any
   qrToken?: string
   qrExpiresAt?: Timestamp | any
-  verifiedMethods: VerificationMethod[]
+  verifiedMethods?: VerificationMethod[]
   verificationNotes?: string
   handoverOfficerId?: string
   handoverOfficerName?: string
   receiptPdfUrl?: string
   adminApprovedBy?: string
   adminNotes?: string
+  rejectionReason?: string
+  reviewedBy?: string
+  reviewedAt?: Timestamp | any
   completedAt?: Timestamp | any
   createdAt: Timestamp | any
   updatedAt: Timestamp | any

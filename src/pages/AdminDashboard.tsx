@@ -17,6 +17,7 @@ import {
   AlertCircle,
   ExternalLink,
   ShieldAlert,
+  ShieldCheck,
   ArrowRight,
   UserCheck,
   UserX,
@@ -52,6 +53,10 @@ import {
   MeetingLocation,
   MVGR_CAMPUS_CENTER,
 } from "../types/CampusLocation"
+import { SimpleClaimService } from "../services/simpleClaim.service"
+import { SimpleFlagService } from "../services/simpleFlag.service"
+import { Claim } from "../types/Claim"
+import { ContentFlag } from "../types/ContentFlag"
 import { Badge } from "../components/ui/Badge"
 import { StatusIndicator } from "../components/ui/StatusIndicator"
 import { ConfidenceGauge } from "../components/ui/ConfidenceGauge"
@@ -59,6 +64,8 @@ import CampusMap from "../components/map/CampusMap"
 
 type AdminTab =
   | "overview"
+  | "claims"
+  | "flags"
   | "items"
   | "matches"
   | "manual_match"
@@ -78,11 +85,21 @@ export default function AdminDashboard() {
   // Data states
   const [items, setItems] = useState<Item[]>([])
   const [matches, setMatches] = useState<Match[]>([])
+  const [claims, setClaims] = useState<Claim[]>([])
+  const [flags, setFlags] = useState<ContentFlag[]>([])
   const [usersList, setUsersList] = useState<any[]>([])
   const [campusLocations, setCampusLocations] = useState<CampusLocation[]>([])
   const [meetingLocations, setMeetingLocations] = useState<MeetingLocation[]>([])
   const [locationAnalytics, setLocationAnalytics] = useState<LocationAnalytics[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Claims & Flags state
+  const [inspectingClaim, setInspectingClaim] = useState<Claim | null>(null)
+  const [rejectionModalClaim, setRejectionModalClaim] = useState<Claim | null>(null)
+  const [rejectionReasonText, setRejectionReasonText] = useState("")
+  const [claimActionLoading, setClaimActionLoading] = useState(false)
+  const [claimStatusFilter, setClaimStatusFilter] = useState<string>("ALL")
+  const [flagStatusFilter, setFlagStatusFilter] = useState<string>("ALL")
 
   // Manual match states
   const [manualLostRef, setManualLostRef] = useState("")
@@ -125,7 +142,7 @@ export default function AdminDashboard() {
   const loadAllAdminData = async () => {
     setLoading(true)
     try {
-      const [allItems, allMatches, usersSnap, locs, meetings, analytics] =
+      const [allItems, allMatches, usersSnap, locs, meetings, analytics, allClaims, allFlags] =
         await Promise.all([
           SimpleItemService.getItems(),
           SimpleMatchingService.getAllMatches(),
@@ -136,10 +153,14 @@ export default function AdminDashboard() {
           CampusLocationService.getLocations(true),
           CampusLocationService.getMeetingLocations(true),
           SimpleItemService.getLocationAnalytics(),
+          SimpleClaimService.getClaims(),
+          SimpleFlagService.getFlags(),
         ])
 
       setItems(allItems)
       setMatches(allMatches)
+      setClaims(allClaims)
+      setFlags(allFlags)
       setCampusLocations(locs)
       setMeetingLocations(meetings)
       setLocationAnalytics(analytics.analytics)
@@ -456,6 +477,94 @@ export default function AdminDashboard() {
     }
   }
 
+  // Claim Administrative Review Handlers
+  const handleApproveClaim = async (claim: Claim) => {
+    setClaimActionLoading(true)
+    try {
+      const reviewed = await SimpleClaimService.reviewClaim(claim.id, {
+        status: "approved",
+        adminId: user?.uid,
+        adminName: user?.displayName || customUser?.name || "Admin",
+      })
+      setClaims((prev) => prev.map((c) => (c.id === claim.id ? reviewed : c)))
+      if (claim.itemId) {
+        setItems((prev) =>
+          prev.map((i) =>
+            i.id === claim.itemId ? { ...i, status: "handover_pending" } : i,
+          ),
+        )
+      }
+      setInspectingClaim(null)
+      alert(
+        `Claim for "${claim.itemTitle}" has been APPROVED!\n\nHandover OTP Code: ${reviewed.otpCode || "Active"}\nDynamic QR Token: ${reviewed.qrToken || "Active"}\n\nThe claimant has been notified to proceed with handover.`,
+      )
+    } catch (err: any) {
+      alert(`Failed to approve claim: ${err.message}`)
+    } finally {
+      setClaimActionLoading(false)
+    }
+  }
+
+  const handleRejectClaim = async () => {
+    if (!rejectionModalClaim) return
+    if (!rejectionReasonText.trim()) {
+      alert("Please provide a reason for rejecting this claim.")
+      return
+    }
+    setClaimActionLoading(true)
+    try {
+      const reviewed = await SimpleClaimService.reviewClaim(rejectionModalClaim.id, {
+        status: "rejected",
+        rejectionReason: rejectionReasonText.trim(),
+        adminId: user?.uid,
+        adminName: user?.displayName || customUser?.name || "Admin",
+      })
+      setClaims((prev) =>
+        prev.map((c) => (c.id === rejectionModalClaim.id ? reviewed : c)),
+      )
+      setRejectionModalClaim(null)
+      setRejectionReasonText("")
+      setInspectingClaim(null)
+    } catch (err: any) {
+      alert(`Failed to reject claim: ${err.message}`)
+    } finally {
+      setClaimActionLoading(false)
+    }
+  }
+
+  const handleUnderReviewClaim = async (claimId: string) => {
+    try {
+      const reviewed = await SimpleClaimService.reviewClaim(claimId, {
+        status: "under_review",
+        adminId: user?.uid,
+        adminName: user?.displayName || customUser?.name || "Admin",
+      })
+      setClaims((prev) => prev.map((c) => (c.id === claimId ? reviewed : c)))
+      if (inspectingClaim?.id === claimId) {
+        setInspectingClaim(reviewed)
+      }
+    } catch (err: any) {
+      alert(`Failed to set under review: ${err.message}`)
+    }
+  }
+
+  const handleResolveFlag = async (
+    flagId: string,
+    status: "resolved" | "dismissed",
+  ) => {
+    try {
+      await SimpleFlagService.resolveFlag(flagId, {
+        status,
+        adminId: user?.uid,
+      })
+      setFlags((prev) =>
+        prev.map((f) => (f.id === flagId ? { ...f, status } : f)),
+      )
+    } catch (err: any) {
+      alert(`Failed to update flag: ${err.message}`)
+    }
+  }
+
   // Role verification (Admin only)
   const isAdmin =
     customUser?.role === ROLES.ADMIN ||
@@ -551,6 +660,16 @@ export default function AdminDashboard() {
       <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold">
         {[
           { id: "overview", label: "Overview" },
+          {
+            id: "claims",
+            label: `Claims Review (${claims.filter((c) => c.status === "pending").length})`,
+            icon: ShieldCheck,
+          },
+          {
+            id: "flags",
+            label: `Reports & Flags (${flags.filter((f) => f.status === "pending").length})`,
+            icon: ShieldAlert,
+          },
           { id: "map", label: "Campus Recovery Map", icon: MapIcon },
           { id: "items", label: `Items Directory (${items.length})` },
           { id: "matches", label: `AI Match Queue (${matches.length})` },
@@ -1400,7 +1519,509 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* TAB: CLAIMS REVIEW */}
+          {activeTab === "claims" && (
+            <div className="space-y-4">
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <ShieldCheck size={20} className="text-blue-600" />
+                    Student Ownership Claims Review
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Review ownership proof submitted by campus members. Private verification details are guarded from public view.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">
+                  {(["ALL", "pending", "under_review", "approved", "rejected"] as const).map(
+                    (st) => (
+                      <button
+                        key={st}
+                        onClick={() => setClaimStatusFilter(st)}
+                        className={`px-3 py-1.5 rounded-lg transition capitalize cursor-pointer ${
+                          claimStatusFilter === st
+                            ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        }`}
+                      >
+                        {st === "ALL" ? "All Claims" : st.replace("_", " ")}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              {/* Claims List Table */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                      <tr>
+                        <th className="py-3.5 px-4">Item &amp; Reference</th>
+                        <th className="py-3.5 px-4">Claimant</th>
+                        <th className="py-3.5 px-4">Stated Reason</th>
+                        <th className="py-3.5 px-4">Unique Markings</th>
+                        <th className="py-3.5 px-4">Status</th>
+                        <th className="py-3.5 px-4">Verification</th>
+                        <th className="py-3.5 px-4 text-right">Administrative Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      {claims
+                        .filter((c) =>
+                          claimStatusFilter === "ALL" ? true : c.status === claimStatusFilter,
+                        )
+                        .map((c) => {
+                          const isPending = c.status === "pending" || c.status === "under_review"
+                          return (
+                            <tr
+                              key={c.id}
+                              className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                            >
+                              <td className="py-3.5 px-4">
+                                <span className="font-mono font-bold text-blue-600 dark:text-blue-400 block text-[11px]">
+                                  {c.itemReference || "CR-ITEM"}
+                                </span>
+                                <span className="font-bold text-slate-900 dark:text-white truncate block max-w-44">
+                                  {c.itemTitle || "Campus Item"}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <span className="font-bold text-slate-900 dark:text-white block">
+                                  {c.claimantName || c.claimerName || "Student"}
+                                </span>
+                                <span className="text-[11px] text-slate-400 block">
+                                  {c.claimantEmail || c.claimerEmail}
+                                </span>
+                                {c.claimantMobile && (
+                                  <span className="text-[10px] text-slate-500 block">
+                                    📞 {c.claimantMobile}
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="py-3.5 px-4 max-w-xs">
+                                <p className="line-clamp-2 text-slate-700 dark:text-slate-300">
+                                  {c.reason || "—"}
+                                </p>
+                              </td>
+
+                              <td className="py-3.5 px-4 max-w-xs">
+                                <p className="line-clamp-2 text-slate-700 dark:text-slate-300">
+                                  {c.uniqueCharacteristics || "—"}
+                                </p>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                    c.status === "approved" || c.status === "admin_approved"
+                                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                      : c.status === "rejected"
+                                      ? "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                                      : c.status === "under_review"
+                                      ? "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                                      : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                                  }`}
+                                >
+                                  {c.status.replace("_", " ")}
+                                </span>
+                                {c.otpCode && (
+                                  <span className="block text-[10px] font-mono font-bold text-slate-500 mt-1">
+                                    OTP: {c.otpCode}
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <button
+                                  onClick={() => setInspectingClaim(c)}
+                                  className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-700 dark:text-slate-300 hover:text-blue-600 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Eye size={12} /> Inspect Proof
+                                </button>
+                              </td>
+
+                              <td className="py-3.5 px-4 text-right">
+                                {isPending ? (
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      disabled={claimActionLoading}
+                                      onClick={() => handleApproveClaim(c)}
+                                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer"
+                                      title="Approve claim and generate handover OTP/QR"
+                                    >
+                                      <Check size={13} /> Approve
+                                    </button>
+                                    <button
+                                      disabled={claimActionLoading}
+                                      onClick={() => setRejectionModalClaim(c)}
+                                      className="px-3 py-1 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold border border-rose-200 dark:border-rose-900 transition flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <X size={13} /> Reject
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">
+                                    Decided
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+
+                      {claims.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="py-12 text-center text-slate-400">
+                            No ownership claims filed yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CONTENT FLAGS & INCORRECT INFO REPORTS */}
+          {activeTab === "flags" && (
+            <div className="space-y-4">
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <ShieldAlert size={20} className="text-rose-600" />
+                    Reported Inaccuracies &amp; Content Flags
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    User submissions flagging incorrect locations, duplicates, already resolved items, or spam.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">
+                  {(["ALL", "pending", "resolved", "dismissed"] as const).map((st) => (
+                    <button
+                      key={st}
+                      onClick={() => setFlagStatusFilter(st)}
+                      className={`px-3 py-1.5 rounded-lg transition capitalize cursor-pointer ${
+                        flagStatusFilter === st
+                          ? "bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-xs"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                      }`}
+                    >
+                      {st === "ALL" ? "All Flags" : st}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                      <tr>
+                        <th className="py-3.5 px-4">Item &amp; Ref</th>
+                        <th className="py-3.5 px-4">Flag Reason</th>
+                        <th className="py-3.5 px-4">Reporter Details</th>
+                        <th className="py-3.5 px-4">Notes / Discrepancy</th>
+                        <th className="py-3.5 px-4">Status</th>
+                        <th className="py-3.5 px-4 text-right">Resolution</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      {flags
+                        .filter((f) =>
+                          flagStatusFilter === "ALL" ? true : f.status === flagStatusFilter,
+                        )
+                        .map((f) => {
+                          const isPending = f.status === "pending"
+                          return (
+                            <tr
+                              key={f.id}
+                              className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"
+                            >
+                              <td className="py-3.5 px-4">
+                                <span className="font-mono font-bold text-blue-600 dark:text-blue-400 block text-[11px]">
+                                  {f.itemReference || "CR-ITEM"}
+                                </span>
+                                <span className="font-bold text-slate-900 dark:text-white block">
+                                  {f.itemTitle || "Campus Item"}
+                                </span>
+                                <Link
+                                  to={`/items/${f.itemId}`}
+                                  target="_blank"
+                                  className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 mt-0.5"
+                                >
+                                  Open item <ExternalLink size={10} />
+                                </Link>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
+                                  {f.reason.replace(/_/g, " ")}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <span className="font-bold text-slate-900 dark:text-white block">
+                                  {f.reporterName || "Campus User"}
+                                </span>
+                                <span className="text-[11px] text-slate-400 block">
+                                  {f.reporterEmail || "—"}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4 max-w-sm">
+                                <p className="text-slate-700 dark:text-slate-300 text-xs">
+                                  {f.notes}
+                                </p>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${
+                                    f.status === "resolved"
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : f.status === "dismissed"
+                                      ? "bg-slate-100 text-slate-600"
+                                      : "bg-amber-50 text-amber-700"
+                                  }`}
+                                >
+                                  {f.status}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4 text-right">
+                                {isPending ? (
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      onClick={() => handleResolveFlag(f.id, "resolved")}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                                    >
+                                      Resolve
+                                    </button>
+                                    <button
+                                      onClick={() => handleResolveFlag(f.id, "dismissed")}
+                                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition cursor-pointer"
+                                    >
+                                      Dismiss
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">Closed</span>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+
+                      {flags.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-12 text-center text-slate-400">
+                            No content flags or discrepancy reports submitted.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </>
+      )}
+
+      {/* CLAIM PROOF INSPECTION MODAL (ADMIN ONLY) */}
+      {inspectingClaim && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={20} className="text-blue-600" />
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                  Ownership Verification Inspection
+                </h3>
+              </div>
+              <button
+                onClick={() => setInspectingClaim(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Item summary */}
+            <div className="p-3.5 bg-blue-50 dark:bg-blue-950/50 rounded-2xl border border-blue-200/80 dark:border-blue-900/60 text-xs text-blue-900 dark:text-blue-200 flex justify-between items-center">
+              <div>
+                <span className="font-bold block text-sm">{inspectingClaim.itemTitle}</span>
+                <span className="text-[11px] text-blue-700 dark:text-blue-300 font-mono">
+                  Ref: {inspectingClaim.itemReference || "CR-ITEM"}
+                </span>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-blue-600 text-white font-bold text-[10px] uppercase">
+                {inspectingClaim.status}
+              </span>
+            </div>
+
+            {/* Claimant identity */}
+            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+              <div>
+                <span className="text-slate-400 block font-semibold">Claimant Name</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {inspectingClaim.claimantName || inspectingClaim.claimerName || "Campus Member"}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-semibold">Campus Email</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {inspectingClaim.claimantEmail || inspectingClaim.claimerEmail}
+                </span>
+              </div>
+              {inspectingClaim.claimantMobile && (
+                <div>
+                  <span className="text-slate-400 block font-semibold">Contact Mobile</span>
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">
+                    {inspectingClaim.claimantMobile}
+                  </span>
+                </div>
+              )}
+              <div>
+                <span className="text-slate-400 block font-semibold">Contact Preference</span>
+                <span className="font-bold text-slate-900 dark:text-white capitalize">
+                  {inspectingClaim.contactPreference || "Email"}
+                </span>
+              </div>
+            </div>
+
+            {/* Proof answers */}
+            <div className="space-y-3 text-xs">
+              <div>
+                <span className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Why Claimant Believes It Belongs To Them:
+                </span>
+                <p className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 leading-relaxed text-slate-900 dark:text-white">
+                  {inspectingClaim.reason || "Not specified."}
+                </p>
+              </div>
+
+              <div>
+                <span className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Unique Identifying Markings:
+                </span>
+                <p className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 leading-relaxed text-slate-900 dark:text-white">
+                  {inspectingClaim.uniqueCharacteristics || "None specified."}
+                </p>
+              </div>
+
+              {/* Private answers highlight */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                    🔒 Strictly Private Verification Details:
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded">
+                    Admin Only
+                  </span>
+                </div>
+                <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-900 leading-relaxed text-slate-900 dark:text-emerald-100 font-medium">
+                  {inspectingClaim.privateVerificationDetails ||
+                    "No additional private verification answers provided."}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="pt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setInspectingClaim(null)}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs cursor-pointer"
+              >
+                Close
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleUnderReviewClaim(inspectingClaim.id)}
+                  className="px-3.5 py-2 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-700 dark:text-purple-300 rounded-xl font-bold text-xs border border-purple-200 dark:border-purple-800 cursor-pointer"
+                >
+                  Mark Under Review
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRejectionModalClaim(inspectingClaim)
+                    setInspectingClaim(null)
+                  }}
+                  className="px-3.5 py-2 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 rounded-xl font-bold text-xs border border-rose-200 dark:border-rose-800 cursor-pointer"
+                >
+                  Reject Claim
+                </button>
+                <button
+                  type="button"
+                  disabled={claimActionLoading}
+                  onClick={() => handleApproveClaim(inspectingClaim)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check size={14} /> Approve &amp; Issue OTP
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REJECTION REASON MODAL */}
+      {rejectionModalClaim && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base">
+              Reject Ownership Claim
+            </h3>
+            <p className="text-xs text-slate-500">
+              Provide a rationale for why the proof provided for {rejectionModalClaim.itemTitle} was deemed insufficient or mismatched.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Rejection Rationale *
+              </label>
+              <textarea
+                rows={3}
+                value={rejectionReasonText}
+                onChange={(e) => setRejectionReasonText(e.target.value)}
+                placeholder="e.g. Serial number mismatch, incorrect photo description, or conflicting claim verified..."
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectionModalClaim(null)
+                  setRejectionReasonText("")
+                }}
+                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={claimActionLoading}
+                onClick={handleRejectClaim}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold"
+              >
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Campus Location Add/Edit Modal */}

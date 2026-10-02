@@ -441,12 +441,12 @@ export const HandoverService = {
     const resolvedClaimerId = claim.claimerId || claim.claimantId || ""
     const logData: Omit<HandoverLog, "id"> = {
       claimId,
-      lostItemId: claim.lostItemId,
-      foundItemId: claim.foundItemId,
+      lostItemId: claim.lostItemId || claim.itemId || "",
+      foundItemId: claim.foundItemId || claim.itemId || "",
       itemTitle: claim.foundItemTitle || claim.lostItemTitle || "Campus Item",
       claimerId: resolvedClaimerId,
       claimerName: claim.claimerName || "Verified Claimant",
-      finderId: claim.finderId,
+      finderId: claim.finderId || "",
       finderName: claim.finderName || "Campus Returner",
       officerId,
       officerName,
@@ -467,7 +467,7 @@ export const HandoverService = {
       userId: officerId || resolvedClaimerId,
       action: "claimed",
       itemType: "lost",
-      itemId: claim.lostItemId,
+      itemId: claim.lostItemId || claim.itemId || "",
       itemTitle: claim.foundItemTitle || "Item",
       details: `Handover finalized with methods: ${(claim.verifiedMethods || []).join(", ")}`,
     })

@@ -11,6 +11,7 @@ export interface Handover {
   claimantId?: string
   finderId?: string
   otp: string
+  otpCode?: string
   otpExpiresAt: any
   otpVerified: boolean
   qrToken: string
