@@ -219,6 +219,25 @@ service cloud.firestore {
       allow create: if isSignedIn() && isNotBanned();
       allow update, delete: if isAdmin();
     }
+
+    // Recovery Handover Records
+    match /recovery/{recoveryId} {
+      allow read: if isSignedIn() && (isAdmin() || isSecurity() || resource.data.approvedBy == request.auth.uid);
+      allow create, update, delete: if isAdmin() || isSecurity();
+    }
+
+    // Audit Logs (Append-only immutable ledger)
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false; // Append-only immutable ledger
+    }
+
+    // Database Schema Migrations (Admin Only)
+    match /_migrations/{version} {
+      allow read, write: if isAdmin();
+    }
   }
 }
+
 
