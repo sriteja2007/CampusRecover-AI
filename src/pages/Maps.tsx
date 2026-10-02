@@ -1,5 +1,18 @@
-import { useState, useEffect, useCallback, useRef } from "react"
-import { Link, useNavigate } from "react-router"
+/**
+ * Interactive Campus Map Page
+ * Dedicated page for MVGR College of Engineering:
+ * Raghumanda Road, Chintalavalasa, Andhra Pradesh 535005
+ * 
+ * Includes:
+ * - Search campus location
+ * - Interactive Leaflet + OpenStreetMap CampusMap
+ * - Lost & Found item markers with accessible badges & popups
+ * - Campus blocks & verified safe handover meeting points
+ * - Real-time statistics from actual database records
+ */
+
+import React, { useState, useEffect, useMemo, useCallback } from "react"
+import { Link } from "react-router"
 import {
   MapPin,
   Package,
@@ -13,794 +26,810 @@ import {
   ChevronRight,
   Share2,
   ExternalLink,
-  MapPinned,
-  Users,
   Shield,
   Compass,
   LocateFixed,
-  Eye,
-  MessageSquare,
-  Sparkles,
+  Search,
   CheckCircle2,
+  Sparkles,
+  Info,
+  Calendar,
+  Layers,
+  ArrowRight,
+  RefreshCw,
 } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
+import { SimpleItemService, LocationAnalytics } from "../services/simpleItem.service"
+import { CampusLocationService } from "../services/campusLocation.service"
+import { Item, ItemType } from "../types/Item"
 import {
-  LostItemService,
-  FoundItemService,
-} from "../services/firebase/item.service"
-import { RealtimeChatService } from "../services/firebase/chat.service"
-
-// ─── Campus Office Data ──────────────────────────────────────
-
-export interface CampusOfficeData {
-  id: string
-  name: string
-  address: string
-  hours: string
-  phone: string
-  lat: number
-  lng: number
-  x: number
-  y: number
-  itemsCount: number
-}
-
-const CAMPUS_OFFICES: CampusOfficeData[] = [
-  {
-    id: "eng",
-    name: "Engineering Library Office",
-    address: "Huang Engineering Center, Rm 101",
-    hours: "8:00 AM – 8:00 PM",
-    phone: "+1 (650) 723-4000",
-    lat: 37.4275,
-    lng: -122.1742,
-    x: 28,
-    y: 22,
-    itemsCount: 23,
-  },
-  {
-    id: "union",
-    name: "Student Union Lost & Found",
-    address: "Tresidder Memorial Union, Rm 101",
-    hours: "9:00 AM – 9:00 PM",
-    phone: "+1 (650) 723-2300",
-    lat: 37.4241,
-    lng: -122.171,
-    x: 55,
-    y: 62,
-    itemsCount: 41,
-  },
-  {
-    id: "lib",
-    name: "Green Library Office",
-    address: "Green Library East, Ground Floor",
-    hours: "8:00 AM – 10:00 PM",
-    phone: "+1 (650) 723-1064",
-    lat: 37.4265,
-    lng: -122.167,
-    x: 64,
-    y: 35,
-    itemsCount: 18,
-  },
-  {
-    id: "security",
-    name: "Campus Security & Public Safety",
-    address: "Campus Public Safety Building, 281 Bonair Siding",
-    hours: "24/7 Immediate Dispatch",
-    phone: "+1 (650) 723-9633",
-    lat: 37.43,
-    lng: -122.175,
-    x: 18,
-    y: 15,
-    itemsCount: 35,
-  },
-]
-
-const SECURITY_OFFICES = [
-  {
-    name: "Main Security Checkpoint",
-    hours: "24/7",
-    location: "Gate A Entrance",
-    phone: "+1 (650) 723-9633",
-  },
-  {
-    name: "Engineering Security Desk",
-    hours: "7:00 AM – 11:00 PM",
-    location: "Huang Eng. Center Lobby",
-    phone: "+1 (650) 723-4000",
-  },
-  {
-    name: "Green Library Security",
-    hours: "8:00 AM – 10:00 PM",
-    location: "East Entrance Turnstiles",
-    phone: "+1 (650) 723-1064",
-  },
-  {
-    name: "Student Union Night Patrol",
-    hours: "8:00 PM – 4:00 AM",
-    location: "Tresidder Plaza",
-    phone: "+1 (650) 723-2300",
-  },
-]
-
-const TYPE_CONFIG = {
-  high: {
-    color: "#dc2626",
-    bg: "rgba(220,38,38,0.9)",
-    size: 44,
-    label: "High Activity (8+)",
-  },
-  medium: {
-    color: "#d97706",
-    bg: "rgba(217,119,6,0.9)",
-    size: 36,
-    label: "Moderate (4–7)",
-  },
-  low: {
-    color: "#0d9488",
-    bg: "rgba(13,148,136,0.9)",
-    size: 28,
-    label: "Low Activity (1–3)",
-  },
-}
-
-function getHotspotType(count: number): "high" | "medium" | "low" {
-  if (count >= 8) return "high"
-  if (count >= 4) return "medium"
-  return "low"
-}
-
-interface LocationCoord {
-  x: number
-  y: number
-}
-
-const LOCATION_POSITIONS: Record<string, LocationCoord> = {
-  "Engineering Building": { x: 32, y: 28 },
-  "Science Center": { x: 22, y: 42 },
-  Library: { x: 64, y: 35 },
-  "Student Center": { x: 55, y: 62 },
-  "Main Quad": { x: 48, y: 48 },
-  "Sports Complex": { x: 20, y: 72 },
-  Cafeteria: { x: 70, y: 55 },
-  Dormitory: { x: 78, y: 30 },
-  "Administration Building": { x: 40, y: 15 },
-  "Parking Lot": { x: 84, y: 65 },
-  Auditorium: { x: 42, y: 60 },
-  "Computer Lab": { x: 30, y: 38 },
-}
-
-interface Hotspot {
-  location: string
-  count: number
-  type: "high" | "medium" | "low"
-  x: number
-  y: number
-  items: string[]
-}
+  CampusLocation,
+  MeetingLocation,
+  MVGR_CAMPUS_CENTER,
+} from "../types/CampusLocation"
+import CampusMap from "../components/map/CampusMap"
 
 export default function Maps() {
-  const { user, customUser } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
 
-  const [selected, setSelected] = useState<string | null>(null)
-  const [hotspots, setHotspots] = useState<Hotspot[]>([])
+  // State
+  const [items, setItems] = useState<Item[]>([])
+  const [campusLocations, setCampusLocations] = useState<CampusLocation[]>([])
+  const [meetingLocations, setMeetingLocations] = useState<MeetingLocation[]>([])
+  const [locationAnalytics, setLocationAnalytics] = useState<LocationAnalytics[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] =
-    useState<"map" | "google_maps" | "offices" | "security">("map")
-  const [totalItems, setTotalItems] = useState(0)
-  const [matchedCount, setMatchedCount] = useState(0)
-  const [sharedMeeting, setSharedMeeting] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
-  // Live GPS Tracking
-  const [liveLocation, setLiveLocation] = useState<{
+  // Filters & Selection
+  const [activeTab, setActiveTab] = useState<"map" | "blocks" | "meeting" | "analytics">("map")
+  const [typeFilter, setTypeFilter] = useState<"ALL" | "LOST" | "FOUND" | "RECOVERED">("ALL")
+  const [dateRange, setDateRange] = useState<"all" | "today" | "week" | "older">("all")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedLocation, setSelectedLocation] = useState<{
     lat: number
     lng: number
-    x: number
-    y: number
+    name?: string
   } | null>(null)
-  const [trackingGps, setTrackingGps] = useState(false)
-  const watchIdRef = useRef<number | null>(null)
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
+  const [copiedMeeting, setCopiedMeeting] = useState<string | null>(null)
+
+  // Load initial data
+  const loadData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true)
+    else setLoading(true)
+
+    try {
+      const [fetchedItems, locs, meetings, analytics] = await Promise.all([
+        SimpleItemService.getItems({
+          type: typeFilter === "ALL" ? undefined : (typeFilter as ItemType),
+          dateRange: dateRange,
+        }),
+        CampusLocationService.getLocations(),
+        CampusLocationService.getMeetingLocations(),
+        SimpleItemService.getLocationAnalytics(),
+      ])
+
+      setItems(fetchedItems)
+      setCampusLocations(locs)
+      setMeetingLocations(meetings)
+      setLocationAnalytics(analytics.analytics)
+    } catch (err) {
+      console.error("Error loading campus map data:", err)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [typeFilter, dateRange])
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const [lostResult, foundResult] = await Promise.all([
-          LostItemService.getAll({}, 100),
-          FoundItemService.getAll({}, 100),
-        ])
-
-        const allItems = [...lostResult.items, ...foundResult.items]
-        setTotalItems(allItems.length)
-
-        const matched = allItems.filter(
-          (i) => i.status === "matched" || i.status === "resolved",
-        )
-        setMatchedCount(matched.length)
-
-        interface LocationSummary {
-          count: number
-          items: string[]
-        }
-        const locationMap: Record<string, LocationSummary> = {}
-
-        for (const item of lostResult.items) {
-          const loc = item.locationLost || "Campus Area"
-          if (!locationMap[loc]) locationMap[loc] = { count: 0, items: [] }
-          locationMap[loc].count++
-          if (locationMap[loc].items.length < 3)
-            locationMap[loc].items.push(item.title)
-        }
-
-        for (const item of foundResult.items) {
-          const loc = item.locationFound || "Campus Area"
-          if (!locationMap[loc]) locationMap[loc] = { count: 0, items: [] }
-          locationMap[loc].count++
-          if (locationMap[loc].items.length < 3)
-            locationMap[loc].items.push(item.title)
-        }
-
-        const spots: Hotspot[] = Object.entries(locationMap).map(
-          ([location, data]) => ({
-            location,
-            count: data.count,
-            type: getHotspotType(data.count),
-            x:
-              LOCATION_POSITIONS[location]?.x ||
-              30 + (Math.abs(hashString(location)) % 45),
-            y:
-              LOCATION_POSITIONS[location]?.y ||
-              20 + (Math.abs(hashString(location + "y")) % 55),
-            items: data.items,
-          }),
-        )
-
-        setHotspots(spots.sort((a, b) => b.count - a.count))
-      } catch (err) {
-        console.error("Failed to load map data:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
     loadData()
-  }, [])
+  }, [loadData])
 
-  // Toggle Live GPS Geolocation
-  const toggleLiveLocation = () => {
-    if (trackingGps) {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current)
-      }
-      setTrackingGps(false)
-      setLiveLocation(null)
-    } else {
-      if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.")
-        return
-      }
-      setTrackingGps(true)
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        (pos) => {
-          // Normalize GPS coordinates to canvas map percentage (Stanford Campus boundaries)
-          // Stanford: Lat ~ 37.424 to 37.432, Lng ~ -122.178 to -122.164
-          const latMin = 37.422
-          const latMax = 37.432
-          const lngMin = -122.179
-          const lngMax = -122.164
+  // Real database metrics
+  const metrics = useMemo(() => {
+    const total = items.length
+    const lost = items.filter((i) => i.type === "LOST" && i.status !== "recovered").length
+    const found = items.filter((i) => i.type === "FOUND" && i.status !== "recovered").length
+    const recovered = items.filter((i) => i.status === "recovered").length
+    return { total, lost, found, recovered }
+  }, [items])
 
-          const normY = Math.max(
-            10,
-            Math.min(
-              90,
-              100 - ((pos.coords.latitude - latMin) / (latMax - latMin)) * 100,
-            ),
-          )
-          const normX = Math.max(
-            10,
-            Math.min(
-              90,
-              ((pos.coords.longitude - lngMin) / (lngMax - lngMin)) * 100,
-            ),
-          )
+  // Filtered locations based on search query
+  const filteredCampusLocations = useMemo(() => {
+    if (!searchQuery.trim()) return campusLocations
+    const q = searchQuery.toLowerCase().trim()
+    return campusLocations.filter(
+      (loc) =>
+        loc.name.toLowerCase().includes(q) ||
+        (loc.description && loc.description.toLowerCase().includes(q)) ||
+        loc.address?.toLowerCase().includes(q),
+    )
+  }, [campusLocations, searchQuery])
 
-          setLiveLocation({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            x: Math.round(normX),
-            y: Math.round(normY),
-          })
-        },
-        (err) => {
-          console.warn("GPS tracking error:", err)
-          // Default fallback to center of campus
-          setLiveLocation({ lat: 37.4275, lng: -122.1697, x: 50, y: 50 })
-        },
-        { enableHighAccuracy: true },
-      )
-    }
+  // Handle selecting a block to center the map
+  const handleSelectBlock = (loc: CampusLocation) => {
+    setSelectedLocation({
+      lat: loc.latitude,
+      lng: loc.longitude,
+      name: loc.name,
+    })
+    setSelectedBlockId(loc.id)
+    setActiveTab("map")
   }
 
-  const shareMeetingLocation = useCallback(async (office: CampusOfficeData) => {
-    setSharedMeeting(office.name)
+  // Handle sharing meeting location
+  const handleShareMeeting = async (meeting: MeetingLocation) => {
+    setCopiedMeeting(meeting.name)
+    const text = `Campus Handover Meeting Spot: ${meeting.name}\n${meeting.address}\nMVGR College of Engineering (${meeting.latitude}, ${meeting.longitude})`
+
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Meet at ${office.name}`,
-          text: `Let's meet at ${office.name} (${office.address}) for our lost & found item handover.`,
-          url: `https://maps.google.com/?q=${office.lat},${office.lng}`,
+          title: `Handover at ${meeting.name}`,
+          text: text,
+          url: `https://www.google.com/maps?q=${meeting.latitude},${meeting.longitude}`,
         })
       } catch {
-        // Share was cancelled or failed
+        // cancelled
       }
     } else {
-      // Copy to clipboard
-      navigator.clipboard.writeText(
-        `Meeting Spot: ${office.name}, ${office.address} (https://maps.google.com/?q=${office.lat},${office.lng})`,
-      )
+      navigator.clipboard.writeText(text)
     }
-  }, [])
+
+    setTimeout(() => setCopiedMeeting(null), 3000)
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
+      {/* Header & Breadcrumb */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1.5">
-            <Link to="/dashboard" className="hover:text-blue-600">
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1.5 font-medium">
+            <Link to="/dashboard" className="hover:text-blue-600 transition-colors">
               Dashboard
             </Link>
-            <ChevronRight size={14} />
-            <span className="text-gray-900 font-medium">
-              Campus Map & Handover Hub
-            </span>
+            <ChevronRight size={13} />
+            <span className="text-gray-900 font-semibold">Campus Map</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-[#131b2e] tracking-tight">
-            Interactive Campus Map
+            Campus Map
           </h1>
-          <p className="text-xs md:text-sm text-gray-500 mt-0.5">
-            Real-time heatmaps, live GPS tracking, and verified safe handover
-            meeting points.
+          <p className="text-sm text-gray-600 mt-1">
+            Explore campus locations and reported lost & found items.
           </p>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-2xl">
-          {[
-            { key: "map", label: "Campus Map", icon: Compass },
-            { key: "google_maps", label: "Google Maps", icon: Navigation },
-            { key: "offices", label: "Campus Offices", icon: Building2 },
-            { key: "security", label: "Security Desks", icon: Shield },
-          ].map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key as any)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                tab === key
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <Icon size={14} />
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          ))}
+        {/* Campus Identity Badge & Refresh */}
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex flex-col items-end text-right">
+            <span className="text-xs font-bold text-[#131b2e] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {MVGR_CAMPUS_CENTER.name}
+            </span>
+            <span className="text-[11px] text-gray-500">
+              Chintalavalasa, Vizianagaram
+            </span>
+          </div>
+
+          <button
+            onClick={() => loadData(true)}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+            title="Refresh map items"
+          >
+            <RefreshCw
+              size={13}
+              className={refreshing ? "animate-spin text-blue-600" : "text-gray-500"}
+            />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-24">
-          <Loader2 size={32} className="animate-spin text-blue-600 mb-3" />
-          <p className="text-sm font-semibold text-gray-500">
-            Loading campus coordinates and item clusters...
-          </p>
+      {/* Main Campus Info Banner */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-4 md:p-5 shadow-sm border border-blue-800/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center flex-shrink-0 text-blue-300">
+            <Building2 size={24} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-base md:text-lg text-white">
+                {MVGR_CAMPUS_CENTER.name}
+              </h2>
+              <span className="bg-blue-500/30 text-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30">
+                Official Campus
+              </span>
+            </div>
+            <p className="text-xs text-blue-200/80 mt-0.5 max-w-xl">
+              {MVGR_CAMPUS_CENTER.address}
+            </p>
+          </div>
         </div>
-      ) : (
+
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${MVGR_CAMPUS_CENTER.latitude},${MVGR_CAMPUS_CENTER.longitude}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-xl text-xs font-bold transition-colors"
+          >
+            <ExternalLink size={13} /> Campus Directions
+          </a>
+          <button
+            onClick={() => {
+              setSelectedLocation({
+                lat: MVGR_CAMPUS_CENTER.latitude,
+                lng: MVGR_CAMPUS_CENTER.longitude,
+                name: MVGR_CAMPUS_CENTER.name,
+              })
+              setActiveTab("map")
+            }}
+            className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md transition-colors"
+          >
+            <Compass size={13} /> Center Campus
+          </button>
+        </div>
+      </div>
+
+      {/* Primary Navigation Tabs */}
+      <div className="flex items-center justify-between border-b border-gray-200 pb-2 overflow-x-auto gap-2">
+        <div className="flex items-center gap-2">
+          {[
+            { key: "map", label: "Interactive Map", icon: Compass },
+            { key: "blocks", label: "Campus Blocks", icon: Building2 },
+            { key: "meeting", label: "Safe Meeting Points", icon: Shield },
+            { key: "analytics", label: "Location Hotspots", icon: TrendingUp },
+          ].map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key as any)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all whitespace-nowrap ${
+                activeTab === key
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200"
+              }`}
+            >
+              <Icon size={15} />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Quick Report Actions */}
+        <div className="hidden lg:flex items-center gap-2">
+          <Link
+            to="/dashboard/report-lost"
+            className="flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            + Report Lost
+          </Link>
+          <Link
+            to="/dashboard/report-found"
+            className="flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            + Report Found
+          </Link>
+        </div>
+      </div>
+
+      {/* Real Database Statistics Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold">
+            <Package size={20} />
+          </div>
+          <div>
+            <div className="text-lg md:text-xl font-extrabold text-[#131b2e]">
+              {metrics.total}
+            </div>
+            <div className="text-[11px] font-medium text-gray-500">
+              Total Campus Items
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 font-bold">
+            <MapPin size={20} />
+          </div>
+          <div>
+            <div className="text-lg md:text-xl font-extrabold text-red-600">
+              {metrics.lost}
+            </div>
+            <div className="text-[11px] font-medium text-gray-500">
+              Lost Reports
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center flex-shrink-0 font-bold">
+            <CheckCircle2 size={20} />
+          </div>
+          <div>
+            <div className="text-lg md:text-xl font-extrabold text-teal-600">
+              {metrics.found}
+            </div>
+            <div className="text-[11px] font-medium text-gray-500">
+              Found In Custody
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0 font-bold">
+            <TrendingUp size={20} />
+          </div>
+          <div>
+            <div className="text-lg md:text-xl font-extrabold text-indigo-600">
+              {metrics.recovered}
+            </div>
+            <div className="text-[11px] font-medium text-gray-500">
+              Items Reunited
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Tab Content */}
+      {activeTab === "map" && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Main Map Visualization (3 Cols) */}
-          <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm flex flex-col">
-            {tab === "map" && (
-              <div className="relative h-[560px] bg-gradient-to-br from-blue-50/60 via-emerald-50/30 to-indigo-50/50 overflow-hidden select-none">
-                {/* Grid Overlay */}
-                <svg
-                  className="absolute inset-0 w-full h-full opacity-20 pointer-events-none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <pattern
-                      id="grid"
-                      width="40"
-                      height="40"
-                      patternUnits="userSpaceOnUse"
-                    >
-                      <path
-                        d="M 40 0 L 0 0 0 40"
-                        fill="none"
-                        stroke="#94a3b8"
-                        strokeWidth="0.8"
-                      />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-                </svg>
-
-                {/* Main Campus Pathways & Roads */}
-                <div className="absolute left-[12%] right-[12%] top-[45%] h-4 bg-slate-200/90 rounded-full shadow-inner pointer-events-none border border-slate-300/50" />
-                <div className="absolute left-[48%] top-[8%] bottom-[8%] w-4 bg-slate-200/90 rounded-full shadow-inner pointer-events-none border border-slate-300/50" />
-                <div className="absolute left-[25%] right-[25%] top-[70%] h-3 bg-slate-200/80 rounded-full shadow-inner pointer-events-none" />
-
-                {/* Visual Campus Zones / Buildings */}
-                {Object.entries(LOCATION_POSITIONS).map(([name, pos]) => (
-                  <div
-                    key={name}
-                    style={{ left: `${pos.x - 5}%`, top: `${pos.y - 4}%` }}
-                    className="absolute w-[11%] h-[9%] bg-white/85 rounded-xl border border-blue-200/80 shadow-xs flex flex-col items-center justify-center p-1 backdrop-blur-xs transition-all hover:bg-blue-50"
-                  >
-                    <Building2 size={12} className="text-blue-500 mb-0.5" />
-                    <span className="text-[9px] font-bold text-gray-700 text-center leading-tight truncate w-full">
-                      {name}
-                    </span>
-                  </div>
-                ))}
-
-                {/* Hotspot Cluster Circles */}
-                {hotspots.map((spot) => {
-                  const cfg = TYPE_CONFIG[spot.type]
-                  const isSelected = selected === spot.location
-
-                  return (
-                    <button
-                      key={spot.location}
-                      onClick={() =>
-                        setSelected(isSelected ? null : spot.location)
-                      }
-                      style={{
-                        left: `${spot.x}%`,
-                        top: `${spot.y}%`,
-                        transform: "translate(-50%, -50%)",
-                        width: cfg.size,
-                        height: cfg.size,
-                        backgroundColor: cfg.color,
-                      }}
-                      className={`absolute rounded-full text-white font-black text-xs flex items-center justify-center shadow-lg border-2 border-white transition-all cursor-pointer z-10 ${
-                        isSelected
-                          ? "scale-125 ring-4 ring-blue-300"
-                          : "hover:scale-110"
-                      }`}
-                    >
-                      {spot.count}
-
-                      {/* Tooltip on Click */}
-                      {isSelected && (
-                        <div className="absolute top-[calc(100%+8px)] left-1/2 -translate-x-1/2 bg-white text-gray-900 rounded-xl p-3 shadow-2xl border border-gray-200 min-w-[200px] z-30 pointer-events-auto">
-                          <div className="text-xs font-black text-[#131b2e] mb-1 flex items-center gap-1.5">
-                            <MapPin size={12} className="text-blue-600" />
-                            {spot.location}
+          {/* Main Map Canvas (3 Columns) */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Search & Map Filters Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Campus Location Search */}
+              <div className="relative flex-1">
+                <Search
+                  size={15}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Search campus location (e.g. CSE Block, Library, Cafeteria)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs md:text-sm text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                />
+                {searchQuery && (
+                  <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white rounded-xl shadow-xl border border-gray-200 p-2 z-50 max-h-56 overflow-y-auto space-y-1">
+                    {filteredCampusLocations.length === 0 ? (
+                      <p className="text-xs text-gray-500 p-2">
+                        No campus blocks matching "{searchQuery}"
+                      </p>
+                    ) : (
+                      filteredCampusLocations.map((loc) => (
+                        <button
+                          key={loc.id}
+                          type="button"
+                          onClick={() => {
+                            handleSelectBlock(loc)
+                            setSearchQuery("")
+                          }}
+                          className="w-full text-left p-2 rounded-lg hover:bg-blue-50 flex items-center justify-between text-xs transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Building2 size={13} className="text-blue-600" />
+                            <span className="font-semibold text-gray-900">
+                              {loc.name}
+                            </span>
                           </div>
-                          <div className="space-y-1 mb-2">
-                            {spot.items.map((item, idx) => (
-                              <div
-                                key={idx}
-                                className="text-[11px] text-gray-600 truncate"
-                              >
-                                • {item}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="text-[10px] font-bold text-blue-600 border-t border-gray-100 pt-1.5">
-                            {spot.count} items reported in this area
-                          </div>
-                        </div>
-                      )}
-                    </button>
-                  )
-                })}
-
-                {/* Verified Campus Office Markers */}
-                {CAMPUS_OFFICES.map((office) => (
-                  <button
-                    key={office.id}
-                    onClick={() => {
-                      setSelected(office.name)
-                    }}
-                    style={{
-                      left: `${office.x}%`,
-                      top: `${office.y}%`,
-                      transform: "translate(-50%, -50%)",
-                    }}
-                    className="absolute w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md border-2 border-white z-20 hover:scale-115 transition-transform"
-                    title={office.name}
-                  >
-                    <Building2 size={14} />
-                  </button>
-                ))}
-
-                {/* Live GPS Radar Marker */}
-                {liveLocation && (
-                  <div
-                    style={{
-                      left: `${liveLocation.x}%`,
-                      top: `${liveLocation.y}%`,
-                      transform: "translate(-50%, -50%)",
-                    }}
-                    className="absolute z-25 pointer-events-none"
-                  >
-                    <div className="w-5 h-5 rounded-full bg-blue-600 border-3 border-white shadow-xl relative flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-blue-500/25 absolute animate-ping" />
-                    </div>
-                    <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-[#131b2e] text-white text-[9px] font-black px-2 py-0.5 rounded-full whitespace-nowrap shadow-md">
-                      You are here
-                    </div>
+                          <span className="text-[10px] text-gray-400">
+                            {loc.type}
+                          </span>
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
+              </div>
 
-                {/* Map Controls Floating Overlay */}
-                <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
+              {/* Status Filters: [All] [Lost] [Found] [Recovered] */}
+              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl self-start md:self-auto overflow-x-auto">
+                {(
+                  [
+                    { key: "ALL", label: "All Items" },
+                    { key: "LOST", label: "Lost" },
+                    { key: "FOUND", label: "Found" },
+                    { key: "RECOVERED", label: "Recovered" },
+                  ] as const
+                ).map(({ key, label }) => (
                   <button
-                    onClick={toggleLiveLocation}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold shadow-md transition-all ${
-                      trackingGps
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                    key={key}
+                    onClick={() => setTypeFilter(key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                      typeFilter === key
+                        ? "bg-white text-blue-600 shadow-xs"
+                        : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
-                    <LocateFixed
-                      size={14}
-                      className={trackingGps ? "animate-pulse" : ""}
-                    />
-                    {trackingGps ? "Tracking Live GPS" : "Track My Location"}
+                    {label}
                   </button>
-                </div>
-
-                {/* Legend */}
-                <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md rounded-xl p-2.5 px-4 shadow-md border border-gray-200 flex items-center gap-4 z-20">
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-700">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-600" />{" "}
-                    High (8+)
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-700">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />{" "}
-                    Moderate (4–7)
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-700">
-                    <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />{" "}
-                    Low (1–3)
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
-                    <Building2 size={12} /> Campus Office
-                  </div>
-                </div>
+                ))}
               </div>
-            )}
 
-            {/* Google Maps Embed / Satellite View */}
-            {tab === "google_maps" && (
-              <div className="relative h-[560px] bg-gray-100">
-                <iframe
-                  title="Google Maps Campus View"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12674.288223681724!2d-122.17951563212891!3d37.42747449999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fbb2a678bea9d%3A0x29cdf01a44fc687f!2sStanford%20University!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus"
-                />
-                <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-md p-3 rounded-xl shadow-lg border border-gray-200 text-xs text-gray-700">
-                  <span className="font-bold">Stanford University Campus</span>{" "}
-                  · 37.4275° N, 122.1697° W
-                </div>
-              </div>
-            )}
-
-            {/* Campus Offices Tab */}
-            {tab === "offices" && (
-              <div className="p-6 overflow-y-auto max-h-[560px] space-y-4">
-                <h2 className="text-lg font-bold text-[#131b2e]">
-                  Physical Lost & Found Custody Offices
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {CAMPUS_OFFICES.map((office) => (
-                    <div
-                      key={office.id}
-                      className="p-5 rounded-2xl border border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all space-y-3"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                          <Building2 size={20} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-[#131b2e] text-sm truncate">
-                            {office.name}
-                          </h3>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {office.address}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1 text-xs text-gray-600 pt-2 border-t border-gray-100">
-                        <div className="flex items-center gap-2">
-                          <Clock size={13} className="text-gray-400" />{" "}
-                          {office.hours}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Phone size={13} className="text-blue-600" />{" "}
-                          {office.phone}
-                        </div>
-                        <div className="flex items-center gap-2 font-bold text-blue-700">
-                          <Package size={13} /> {office.itemsCount} items
-                          currently in custody
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 pt-2">
-                        <button
-                          onClick={() => shareMeetingLocation(office)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
-                        >
-                          <Share2 size={12} /> Share as Meeting Spot
-                        </button>
-                        <a
-                          href={`https://maps.google.com/?q=${office.lat},${office.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-bold transition-colors"
-                        >
-                          <ExternalLink size={12} /> Directions
-                        </a>
-                      </div>
-
-                      {sharedMeeting === office.name && (
-                        <div className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
-                          <CheckCircle2 size={13} /> Meeting point copied &
-                          ready to share in chat!
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Security Desks Tab */}
-            {tab === "security" && (
-              <div className="p-6 overflow-y-auto max-h-[560px] space-y-4">
-                <h2 className="text-lg font-bold text-[#131b2e] flex items-center gap-2">
-                  <Shield size={20} className="text-red-600" /> 24/7 Security
-                  Desks & Emergency Posts
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {SECURITY_OFFICES.map((sec) => (
-                    <div
-                      key={sec.name}
-                      className="p-5 rounded-2xl border border-gray-200 bg-white hover:border-red-200 shadow-xs space-y-2"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-                          <Shield size={20} />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-[#131b2e] text-sm">
-                            {sec.name}
-                          </h3>
-                          <p className="text-xs text-gray-500">
-                            {sec.location}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
-                        <span className="text-gray-500 flex items-center gap-1">
-                          <Clock size={12} /> {sec.hours}
-                        </span>
-                        <a
-                          href={`tel:${sec.phone}`}
-                          className="font-bold text-red-600 hover:underline flex items-center gap-1"
-                        >
-                          <Phone size={12} /> {sec.phone}
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Sidebar: Statistics & Hotspot Rankings */}
-          <div className="space-y-4">
-            {/* Quick Metrics */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 bg-white rounded-2xl border border-gray-200 shadow-xs text-center">
-                <Package size={18} className="text-blue-600 mx-auto mb-1" />
-                <div className="text-xl font-extrabold text-[#131b2e]">
-                  {totalItems}
-                </div>
-                <div className="text-[11px] text-gray-500">Items on Map</div>
-              </div>
-              <div className="p-4 bg-white rounded-2xl border border-gray-200 shadow-xs text-center">
-                <TrendingUp size={18} className="text-teal-600 mx-auto mb-1" />
-                <div className="text-xl font-extrabold text-[#131b2e]">
-                  {matchedCount}
-                </div>
-                <div className="text-[11px] text-gray-500">Items Reunited</div>
+              {/* Date Filters: [All Time] [Today] [This Week] [Older] */}
+              <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                <Calendar size={13} className="text-gray-400" />
+                <select
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value as any)}
+                  className="bg-gray-50 border border-gray-200 text-xs font-semibold rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Dates</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="older">Older</option>
+                </select>
               </div>
             </div>
 
-            {/* Top Hotspots List */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
-              <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
-                Top Loss Hotspots
+            {/* Reusable CampusMap Component */}
+            <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white">
+              {loading ? (
+                <div className="h-[620px] flex flex-col items-center justify-center bg-gray-50 space-y-3">
+                  <Loader2 size={36} className="animate-spin text-blue-600" />
+                  <p className="text-xs font-semibold text-gray-600">
+                    Loading MVGR campus map & item coordinates...
+                  </p>
+                </div>
+              ) : (
+                <CampusMap
+                  items={items}
+                  selectedLocation={selectedLocation}
+                  height="620px"
+                  showControls={true}
+                  showFilters={false}
+                  showLegend={true}
+                  showCampusBlocks={true}
+                  showMeetingPoints={true}
+                  initialFilter={typeFilter}
+                />
+              )}
+            </div>
+
+            {/* Privacy & Safe Location Note */}
+            <div className="p-3.5 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-2.5 text-xs text-blue-900">
+              <Info size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Approximate Location & Privacy Notice:</span>{" "}
+                Map markers indicate estimated campus blocks and zones where items were lost or retrieved. Personal addresses, phone numbers, and exact personal coordinates are never disclosed publicly on the map.
+              </div>
+            </div>
+          </div>
+
+          {/* Right Sidebar: Quick Campus Navigation & Hotspots */}
+          <div className="space-y-4">
+            {/* Campus Blocks Quick Directory */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Building2 size={14} className="text-blue-600" />
+                  Campus Blocks
+                </h3>
+                <button
+                  onClick={() => setActiveTab("blocks")}
+                  className="text-xs font-semibold text-blue-600 hover:underline"
+                >
+                  View All ({campusLocations.length})
+                </button>
+              </div>
+
+              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                {campusLocations.slice(0, 7).map((loc) => {
+                  const isSelected = selectedBlockId === loc.id
+                  return (
+                    <button
+                      key={loc.id}
+                      onClick={() => handleSelectBlock(loc)}
+                      className={`w-full text-left p-2.5 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                        isSelected
+                          ? "bg-blue-50 border-blue-300 text-blue-900 font-bold"
+                          : "bg-gray-50/80 border-gray-100 text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="truncate font-medium">{loc.name}</div>
+                        <div className="text-[10px] text-gray-400 truncate">
+                          {loc.type}
+                        </div>
+                      </div>
+                      <ChevronRight
+                        size={13}
+                        className={isSelected ? "text-blue-600" : "text-gray-400"}
+                      />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Most Active Locations (Real Database) */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs space-y-3">
+              <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                <TrendingUp size={14} className="text-teal-600" />
+                Most Active Locations
               </h3>
-              {hotspots.length === 0 ? (
-                <p className="text-xs text-gray-400">
-                  No hotspot data available.
+
+              {locationAnalytics.length === 0 ? (
+                <p className="text-xs text-gray-400 py-3 text-center">
+                  No location report data yet.
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {hotspots.slice(0, 6).map((spot) => {
-                    const cfg = TYPE_CONFIG[spot.type]
-                    return (
-                      <button
-                        key={spot.location}
-                        onClick={() => {
-                          setTab("map")
-                          setSelected(spot.location)
-                        }}
-                        className="w-full text-left flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: cfg.color }}
-                          />
-                          <span className="text-xs font-bold text-[#131b2e] truncate">
-                            {spot.location}
-                          </span>
+                  {locationAnalytics.slice(0, 5).map((loc) => (
+                    <button
+                      key={loc.location}
+                      onClick={() => {
+                        const match = campusLocations.find(
+                          (c) => c.name.toLowerCase() === loc.location.toLowerCase(),
+                        )
+                        if (match) {
+                          handleSelectBlock(match)
+                        } else {
+                          setSelectedLocation({
+                            lat: loc.latitude || MVGR_CAMPUS_CENTER.latitude,
+                            lng: loc.longitude || MVGR_CAMPUS_CENTER.longitude,
+                            name: loc.location,
+                          })
+                        }
+                      }}
+                      className="w-full text-left p-2 rounded-xl hover:bg-gray-50 flex items-center justify-between transition-colors text-xs"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="font-semibold text-gray-800 truncate">
+                          {loc.location}
                         </div>
-                        <span
-                          className="text-xs font-extrabold px-2 py-0.5 rounded-md"
-                          style={{
-                            color: cfg.color,
-                            backgroundColor: `${cfg.color}15`,
-                          }}
-                        >
-                          {spot.count}
-                        </span>
-                      </button>
-                    )
-                  })}
+                        <div className="text-[10px] text-gray-400">
+                          {loc.lostCount} lost · {loc.foundCount} found
+                        </div>
+                      </div>
+                      <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
+                        {loc.totalReports}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Safe Meeting Locations Helper */}
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-5 shadow-md space-y-3">
-              <div className="flex items-center gap-2">
-                <Shield size={18} />
-                <h4 className="font-bold text-sm">Campus Handover Safety</h4>
+            {/* Handover Safety Card */}
+            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-4 shadow-sm space-y-2.5">
+              <div className="flex items-center gap-2 text-indigo-300">
+                <Shield size={16} />
+                <h4 className="text-xs font-bold uppercase tracking-wider">
+                  Safe Handover
+                </h4>
               </div>
-              <p className="text-xs text-blue-100 leading-relaxed">
-                Always exchange high-value items in well-lit designated campus
-                offices or security desks.
+              <p className="text-xs text-indigo-100/90 leading-relaxed">
+                Meet at monitored locations like the Main Gate Security Post or Admin Front Desk for verified QR/OTP exchanges.
               </p>
               <button
-                onClick={() => setTab("offices")}
-                className="w-full py-2 bg-white text-blue-700 rounded-xl font-bold text-xs hover:bg-blue-50 transition-colors shadow-xs"
+                onClick={() => setActiveTab("meeting")}
+                className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
               >
-                View Recommended Desks
+                <span>View Safe Meeting Points</span>
+                <ArrowRight size={13} />
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Campus Blocks Tab */}
+      {activeTab === "blocks" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-200">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">
+                MVGR Campus Blocks Directory
+              </h2>
+              <p className="text-xs text-gray-500">
+                All academic departments, administrative offices, and student facilities.
+              </p>
+            </div>
+            <div className="text-xs text-gray-600 font-semibold bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+              {campusLocations.length} Registered Campus Blocks
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {campusLocations.map((loc) => {
+              const count =
+                locationAnalytics.find(
+                  (a) => a.location.toLowerCase() === loc.name.toLowerCase(),
+                )?.totalReports || 0
+
+              return (
+                <div
+                  key={loc.id}
+                  className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs hover:border-blue-300 hover:shadow-md transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                        <Building2 size={20} />
+                      </div>
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                        {loc.type}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-900">{loc.name}</h3>
+                      <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
+                        {loc.description}
+                      </p>
+                    </div>
+
+                    <div className="text-[11px] text-gray-400">
+                      Approx. Coordinates: {loc.latitude.toFixed(4)}° N, {loc.longitude.toFixed(4)}° E
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-gray-600">
+                      {count} items reported
+                    </span>
+                    <button
+                      onClick={() => handleSelectBlock(loc)}
+                      className="flex items-center gap-1 font-bold text-blue-600 hover:text-blue-700"
+                    >
+                      <span>Show on Map</span>
+                      <ArrowRight size={13} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Safe Meeting Points Tab */}
+      {activeTab === "meeting" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-200">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Shield size={18} className="text-indigo-600" />
+                Verified Safe Handover Points
+              </h2>
+              <p className="text-xs text-gray-500">
+                Staffed, CCTV-monitored campus locations recommended for secure lost & found handovers.
+              </p>
+            </div>
+            <div className="text-xs text-gray-600 font-semibold bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+              {meetingLocations.length} Safe Handover Desks
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {meetingLocations.map((meeting) => (
+              <div
+                key={meeting.id}
+                className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                      <Shield size={22} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-sm">
+                        {meeting.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {meeting.address}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    {meeting.description}
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleShareMeeting(meeting)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors"
+                    >
+                      <Share2 size={13} />
+                      <span>Share Spot</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedLocation({
+                          lat: meeting.latitude,
+                          lng: meeting.longitude,
+                          name: meeting.name,
+                        })
+                        setActiveTab("map")
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition-colors"
+                    >
+                      <Compass size={13} />
+                      <span>Locate on Map</span>
+                    </button>
+                  </div>
+
+                  {copiedMeeting === meeting.name && (
+                    <div className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                      <CheckCircle2 size={13} /> Meeting point copied & ready to share!
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Location Hotspots Tab */}
+      {activeTab === "analytics" && (
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <TrendingUp size={18} className="text-teal-600" />
+                Campus Loss & Recovery Hotspots Analytics
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Aggregated statistics computed dynamically from real database item records.
+              </p>
+            </div>
+
+            {locationAnalytics.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 text-xs">
+                No location reports logged yet.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-gray-600">
+                  <thead className="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500 font-bold border-b border-gray-200">
+                    <tr>
+                      <th className="p-3">Campus Location</th>
+                      <th className="p-3">Total Reports</th>
+                      <th className="p-3 text-red-600">Lost Items</th>
+                      <th className="p-3 text-teal-600">Found Items</th>
+                      <th className="p-3 text-indigo-600">Recovered</th>
+                      <th className="p-3">Recovery Rate</th>
+                      <th className="p-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 font-medium">
+                    {locationAnalytics.map((stat) => (
+                      <tr key={stat.location} className="hover:bg-gray-50/80">
+                        <td className="p-3 font-bold text-gray-900 flex items-center gap-2">
+                          <MapPin size={13} className="text-blue-600" />
+                          {stat.location}
+                        </td>
+                        <td className="p-3 font-extrabold text-[#131b2e]">
+                          {stat.totalReports}
+                        </td>
+                        <td className="p-3 text-red-600">{stat.lostCount}</td>
+                        <td className="p-3 text-teal-600">{stat.foundCount}</td>
+                        <td className="p-3 text-indigo-600">{stat.recoveredCount}</td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                              stat.recoveryRate >= 50
+                                ? "bg-emerald-100 text-emerald-800"
+                                : stat.recoveryRate > 0
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {stat.recoveryRate}%
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => {
+                              setSelectedLocation({
+                                lat: stat.latitude || MVGR_CAMPUS_CENTER.latitude,
+                                lng: stat.longitude || MVGR_CAMPUS_CENTER.longitude,
+                                name: stat.location,
+                              })
+                              setActiveTab("map")
+                            }}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-800"
+                          >
+                            View on Map
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
-}
-
-function hashString(str: string): number {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff
-  }
-  return hash
 }

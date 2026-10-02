@@ -81,6 +81,29 @@ function dateProximity(d1: string, d2: string): number {
   return 0.2
 }
 
+function calculateDistanceMeters(
+  lat1?: number,
+  lon1?: number,
+  lat2?: number,
+  lon2?: number,
+): number | null {
+  if (lat1 === undefined || lon1 === undefined || lat2 === undefined || lon2 === undefined)
+    return null
+  if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return null
+  const R = 6371e3 // metres
+  const φ1 = (lat1 * Math.PI) / 180
+  const φ2 = (lat2 * Math.PI) / 180
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  return R * c
+}
+
 export const SimpleMatchingService = {
   /**
    * Helper to retrieve Gemini API key
@@ -102,6 +125,9 @@ export const SimpleMatchingService = {
     score: number
     reason: string
     confidence: ConfidenceLevel
+    lostLocation: string
+    foundLocation: string
+    locationSimilarity: "High" | "Moderate" | "Different Area"
   }> {
     const apiKey = this.getApiKey()
 
@@ -113,7 +139,43 @@ export const SimpleMatchingService = {
       found.itemName || found.title || "",
     )
     const descSim = wordSimilarity(lost.description, found.description)
-    const locSim = wordSimilarity(lost.location, found.location)
+
+    // Calculate location signal (using coordinates distance or block names)
+    const lostLocName = lost.locationName || lost.location || lost.locationLost || "Campus Area"
+    const foundLocName = found.locationName || found.location || found.locationFound || "Campus Area"
+
+    let locSim = 0.5
+    let locationSimilarity: "High" | "Moderate" | "Different Area" = "Moderate"
+
+    const distMeters = calculateDistanceMeters(
+      lost.latitude,
+      lost.longitude,
+      found.latitude,
+      found.longitude,
+    )
+    const normLostLoc = normalize(lostLocName)
+    const normFoundLoc = normalize(foundLocName)
+
+    if (distMeters !== null && distMeters <= 60) {
+      locSim = 1.0
+      locationSimilarity = "High"
+    } else if (normLostLoc && normFoundLoc && normLostLoc === normFoundLoc) {
+      locSim = 1.0
+      locationSimilarity = "High"
+    } else if (distMeters !== null && distMeters <= 180) {
+      locSim = 0.85
+      locationSimilarity = "High"
+    } else if (wordSimilarity(lostLocName, foundLocName) >= 0.5) {
+      locSim = 0.8
+      locationSimilarity = "High"
+    } else if (distMeters !== null && distMeters <= 350) {
+      locSim = 0.65
+      locationSimilarity = "Moderate"
+    } else {
+      locSim = 0.35
+      locationSimilarity = "Different Area"
+    }
+
     const colorMatch =
       lost.color &&
       found.color &&
@@ -135,7 +197,7 @@ export const SimpleMatchingService = {
           : 0.5
     const dateSim = dateProximity(lost.date, found.date)
 
-    // Weighted algorithmic score
+    // Weighted algorithmic score (Location is one signal - NEVER alone to confirm)
     let baseScore =
       catMatch * 0.25 +
       nameSim * 0.25 +
@@ -153,17 +215,17 @@ export const SimpleMatchingService = {
       Math.max(0, Math.round(baseScore * 100)),
     )
 
-    // Check for exact name + location match boost
-    if (nameSim >= 0.8 && locSim >= 0.5) {
-      calculatedScore = Math.max(calculatedScore, 90)
+    // Exact name + high location boost
+    if (nameSim >= 0.8 && locSim >= 0.8) {
+      calculatedScore = Math.max(calculatedScore, 92)
     }
 
     // Default explanation
     let explanation = `Both reports describe "${lost.itemName || lost.title}" with ${
       catMatch
-        ? "identical category (" + lost.category + ")"
+        ? "matching category (" + lost.category + ")"
         : "different categories"
-    }, matching color tone (${lost.color || "N/A"}), and proximate campus location (${lost.location} vs ${found.location}).`
+    }, matching color tone (${lost.color || "N/A"}), and ${locationSimilarity.toLowerCase()} campus location proximity (${lostLocName} vs ${foundLocName}).`
 
     // 2. If Gemini API key is available, run live Gemini LLM comparison
     if (apiKey) {
@@ -177,7 +239,7 @@ Lost Item:
 - Description: ${lost.description}
 - Color: ${lost.color || "N/A"}
 - Brand: ${lost.brand || "N/A"}
-- Location Lost: ${lost.location}
+- Location Lost: ${lostLocName}
 - Date: ${lost.date}
 
 Found Item:
@@ -187,12 +249,13 @@ Found Item:
 - Description: ${found.description}
 - Color: ${found.color || "N/A"}
 - Brand: ${found.brand || "N/A"}
-- Location Found: ${found.location}
+- Location Found: ${foundLocName}
 - Date: ${found.date}
 
+Location Signal: ${locationSimilarity} proximity between ${lostLocName} and ${foundLocName}.
 Baseline Similarity: ${calculatedScore}%.
 
-Analyze whether these two items are likely the same physical object.
+Analyze whether these two items are likely the same physical object. Note that location proximity is one signal and does not solely guarantee a match.
 Return ONLY a valid JSON object matching this schema:
 {
   "score": number between 0 and 100,
@@ -235,6 +298,9 @@ Return ONLY a valid JSON object matching this schema:
       score: calculatedScore,
       reason: explanation,
       confidence,
+      lostLocation: lostLocName,
+      foundLocation: foundLocName,
+      locationSimilarity,
     }
   },
 
@@ -322,6 +388,9 @@ Return ONLY a valid JSON object matching this schema:
             aiScore: result.score,
             aiReason: result.reason,
             confidenceLevel: result.confidence,
+            lostLocation: result.lostLocation,
+            foundLocation: result.foundLocation,
+            locationSimilarity: result.locationSimilarity,
             source: "AI",
             status: "pending",
             contactShared: false,
@@ -579,6 +648,9 @@ Return ONLY a valid JSON object matching this schema:
       aiScore: 100,
       aiReason: "Manually matched and verified by Campus Administrator.",
       confidenceLevel: "high",
+      lostLocation: lostItem.locationName || lostItem.location || "Campus Area",
+      foundLocation: foundItem.locationName || foundItem.location || "Campus Area",
+      locationSimilarity: "High",
       source: "MANUAL",
       status: "confirmed",
       contactShared: true,

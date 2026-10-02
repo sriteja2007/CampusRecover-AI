@@ -1,16 +1,16 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { useParams, useNavigate } from "react-router"
+import { useState, useEffect } from "react"
+import { useParams, useNavigate, Link } from "react-router"
 import { useAuth } from "../context/AuthContext"
+import { SimpleItemService } from "../services/simpleItem.service"
 import {
   LostItemService,
   FoundItemService,
   ActivityLogService,
   ActivityLog,
 } from "../services/firebase/item.service"
-import { MatchingService, MatchResult } from "../services/matching.service"
-import { RecommendationService } from "../services/recommendation.service"
-import { LostItem } from "../types/LostItem"
-import { FoundItem } from "../types/FoundItem"
+import { Item } from "../types/Item"
+import { Badge } from "../components/ui/Badge"
+import { StatusIndicator } from "../components/ui/StatusIndicator"
 import {
   MapPin,
   Clock,
@@ -25,69 +25,56 @@ import {
   AlertTriangle,
   MessageSquare,
   ImageIcon,
+  Sparkles,
+  KeyRound,
+  Mail,
+  Phone,
+  UserCheck,
+  CheckCircle2,
+  FileWarning,
+  Navigation,
 } from "lucide-react"
-
-function formatTimeAgo(date: Date) {
-  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000)
-  let interval = seconds / 31536000
-  if (interval > 1) return Math.floor(interval) + " years ago"
-  interval = seconds / 2592000
-  if (interval > 1) return Math.floor(interval) + " months ago"
-  interval = seconds / 86400
-  if (interval > 1) return Math.floor(interval) + " days ago"
-  interval = seconds / 3600
-  if (interval > 1) return Math.floor(interval) + " hours ago"
-  interval = seconds / 60
-  if (interval > 1) return Math.floor(interval) + " minutes ago"
-  return Math.floor(seconds) + " seconds ago"
-}
+import CampusMap from "../components/map/CampusMap"
 
 export default function ItemDetail() {
   const { type, id } = useParams()
   const navigate = useNavigate()
   const { user, customUser } = useAuth()
 
-  const [item, setItem] = useState<LostItem | FoundItem | null>(null)
+  const [item, setItem] = useState<any | null>(null)
   const [logs, setLogs] = useState<ActivityLog[]>([])
-  const [matches, setMatches] = useState<MatchResult[]>([])
-  const [recommendations, setRecommendations] =
-    useState<(LostItem | FoundItem)[]>([])
   const [loading, setLoading] = useState(true)
   const [activeImage, setActiveImage] = useState(0)
+  const [showContact, setShowContact] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    if (!id || !type) return
+    if (!id) return
     const loadData = async () => {
       setLoading(true)
       try {
-        let fetchedItem: LostItem | FoundItem | null = null
-        if (type === "lost") {
-          fetchedItem = await LostItemService.getById(id)
-        } else if (type === "found") {
-          fetchedItem = await FoundItemService.getById(id)
+        // Try SimpleItemService first
+        let fetchedItem: any = await SimpleItemService.getItemById(id)
+        if (!fetchedItem && id.startsWith("CR-")) {
+          fetchedItem = await SimpleItemService.getItemByReference(id)
+        }
+
+        // Fallback to legacy service
+        if (!fetchedItem) {
+          if (type === "lost") {
+            fetchedItem = await LostItemService.getById(id)
+          } else if (type === "found") {
+            fetchedItem = await FoundItemService.getById(id)
+          }
         }
 
         if (fetchedItem) {
           setItem(fetchedItem)
-          const fetchedLogs = await ActivityLogService.getItemLogs(id)
-          setLogs(fetchedLogs)
-
-          const recs = await RecommendationService.getSimilarItems(
-            fetchedItem,
-            type as "lost" | "found",
-          )
-          setRecommendations(recs)
-
-          if (user) {
-            const fetchedMatches = await MatchingService.getUserMatches(
-              user.uid,
-            )
-            const itemMatches = fetchedMatches.filter(
-              (m) =>
-                (type === "lost" && m.lostItemId === id) ||
-                (type === "found" && m.foundItemId === id),
-            )
-            setMatches(itemMatches)
+          try {
+            const fetchedLogs = await ActivityLogService.getItemLogs(id)
+            setLogs(fetchedLogs)
+          } catch {
+            // optional logs
           }
         }
       } catch (error) {
@@ -97,92 +84,104 @@ export default function ItemDetail() {
       }
     }
     loadData()
-  }, [id, type, user])
+  }, [id, type])
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex flex-col justify-center items-center h-96 gap-3">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm font-medium text-slate-500">Retrieving item profile...</p>
       </div>
     )
   }
 
   if (!item) {
     return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <h2 className="text-2xl font-bold text-gray-800">Item not found</h2>
+      <div className="max-w-md mx-auto my-20 p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 text-center shadow-sm">
+        <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle size={32} />
+        </div>
+        <h2 className="text-xl font-black text-slate-900 dark:text-white">Item Record Not Found</h2>
+        <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 mb-6">
+          The requested campus item record could not be found or may have been deleted.
+        </p>
         <button
-          onClick={() => navigate(-1)}
-          className="mt-4 text-blue-600 hover:underline"
+          onClick={() => navigate("/dashboard/search")}
+          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
         >
-          Go Back
+          Return to Directory
         </button>
       </div>
     )
   }
 
+  const isLost =
+    item.type === "LOST" || type === "lost" || item.referenceNumber?.startsWith("CR-LST")
   const isOwner = user?.uid === item.userId
-  const isAdmin =
-    customUser?.role === "admin" || customUser?.role === "superadmin"
-  const canEdit = isOwner || isAdmin
+  const itemTitle = item.itemName || item.title || "Campus Item"
+  const itemImages: string[] = item.imageUrls?.length
+    ? item.imageUrls
+    : item.imageUrl
+    ? [item.imageUrl]
+    : []
+  const itemLocation =
+    item.location || item.locationLost || item.locationFound || "Campus Grounds"
+  const itemDate = item.date || item.dateLost || item.dateFound || "Recent"
+  const itemTime = item.time || item.timeLost || item.timeFound || ""
+  const refCode = item.referenceNumber || (item.id ? `CR-${item.id.slice(0, 6).toUpperCase()}` : "CR-ITEM")
 
-  const statusColors: Record<string, string> = {
-    pending: "bg-amber-100 text-amber-800",
-    matched: "bg-teal-100 text-teal-800",
-    claimed: "bg-blue-100 text-blue-800",
-    resolved: "bg-emerald-100 text-emerald-800",
-    rejected: "bg-red-100 text-red-800",
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Top Header Navigation */}
+      <div className="flex items-center justify-between gap-4 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer"
+          className="flex items-center text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-bold transition cursor-pointer"
         >
-          <ChevronLeft size={20} className="mr-1" /> Back
+          <ChevronLeft size={18} className="mr-1" /> Back to Search
         </button>
-        <div className="flex gap-3">
-          <button className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">
-            <Share2 size={18} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleShare}
+            className="p-2.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <Share2 size={15} />
+            <span>{copied ? "Copied Link!" : "Share"}</span>
           </button>
-          <button className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">
-            <Bookmark size={18} />
-          </button>
-          {!isOwner && (
-            <button className="p-2 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/60 flex items-center gap-2">
-              <AlertTriangle size={18} /> Report Duplicate
-            </button>
-          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Gallery & Description */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Gallery */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
-            {item.imageUrls && item.imageUrls.length > 0 ? (
-              <div className="relative">
-                <div className="aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+      {/* 2-Column Responsive Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Visual Gallery & Detailed Information */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+          {/* Main Media Gallery */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+            {itemImages.length > 0 ? (
+              <div>
+                <div className="h-80 sm:h-96 bg-slate-950 flex items-center justify-center overflow-hidden">
                   <img
-                    src={item.imageUrls[activeImage]}
-                    alt={item.title}
-                    className="max-h-full object-contain"
+                    src={itemImages[activeImage]}
+                    alt={itemTitle}
+                    className="max-h-full max-w-full object-contain"
                   />
                 </div>
-                {item.imageUrls.length > 1 && (
-                  <div className="flex overflow-x-auto gap-2 p-4 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-200 dark:border-gray-800">
-                    {item.imageUrls.map((url, idx) => (
+                {itemImages.length > 1 && (
+                  <div className="flex overflow-x-auto gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800">
+                    {itemImages.map((url, idx) => (
                       <button
                         key={idx}
                         onClick={() => setActiveImage(idx)}
-                        className={`h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition ${
+                        className={`h-16 w-16 shrink-0 rounded-xl overflow-hidden border-2 transition ${
                           activeImage === idx
-                            ? "border-blue-500"
-                            : "border-transparent"
+                            ? "border-blue-500 scale-95"
+                            : "border-transparent opacity-70 hover:opacity-100"
                         }`}
                       >
                         <img
@@ -196,269 +195,246 @@ export default function ItemDetail() {
                 )}
               </div>
             ) : (
-              <div className="aspect-video bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-                <ImageIcon size={48} className="mb-2" />
-                <p>No images available</p>
+              <div className="h-64 sm:h-80 bg-slate-100 dark:bg-slate-800/60 flex flex-col items-center justify-center text-slate-400">
+                <ImageIcon size={48} className="mb-2 opacity-50" />
+                <p className="text-xs font-semibold">No photographic evidence provided</p>
               </div>
             )}
           </div>
 
-          {/* Details */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{item.title}</h1>
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-bold uppercase tracking-wider ${statusColors[item.status] || "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"}`}
-              >
-                {item.status}
-              </span>
+          {/* Core Item Metadata */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <Badge variant={isLost ? "lost" : "found"}>
+                  {isLost ? "Lost Item Report" : "Found Item Report"}
+                </Badge>
+                <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 tracking-wider">
+                  {refCode}
+                </span>
+              </div>
+              <StatusIndicator status={item.status || "pending"} size="md" showLabel />
             </div>
 
-            <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed whitespace-pre-wrap">
-              {item.description}
-            </p>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                {itemTitle}
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-3 leading-relaxed whitespace-pre-line">
+                {item.description}
+              </p>
+            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-100 dark:border-gray-800">
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">
+            {/* Spec Sheet Table */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div>
+                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider block mb-1">
                   Category
                 </span>
-                <span className="font-semibold text-gray-900 dark:text-white flex items-center gap-1">
-                  <Tag size={14} className="text-blue-500" />{" "}
-                  {item.category || "N/A"}
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white capitalize">
+                  {item.category || "General"}
                 </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">
-                  Brand
+
+              <div>
+                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider block mb-1">
+                  Primary Color
                 </span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {item.brand || "N/A"}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">
-                  Color
-                </span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {item.color || "N/A"}
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  {item.color || "Not specified"}
                 </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mb-1">
-                  Reward
+
+              <div>
+                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider block mb-1">
+                  Brand / Model
                 </span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  {"rewardOffered" in item && item.rewardOffered
-                    ? `₹${item.rewardOffered}`
-                    : "None"}
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  {item.brand || "Unspecified"}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider block mb-1">
+                  Reference Code
+                </span>
+                <span className="text-xs sm:text-sm font-bold font-mono text-blue-600 dark:text-blue-400">
+                  {refCode}
                 </span>
               </div>
             </div>
 
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-3 flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-2">
-              <Info size={18} /> Additional Details
-            </h3>
-            <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-              {"serialNumber" in item && item.serialNumber && (
-                <li>
-                  <span className="font-medium text-gray-900 dark:text-white">Serial Number:</span>{" "}
-                  {item.serialNumber}
-                </li>
-              )}
-              {(item as any).uniqueFeatures && (
-                <li>
-                  <span className="font-medium text-gray-900 dark:text-white">Unique Features:</span>{" "}
-                  {(item as any).uniqueFeatures}
-                </li>
-              )}
-              {(item as FoundItem).condition && (
-                <li>
-                  <span className="font-medium text-gray-900 dark:text-white">Condition:</span>{" "}
-                  {(item as FoundItem).condition}
-                </li>
-              )}
-              {(item as any).currentHolder && (
-                <li>
-                  <span className="font-medium text-gray-900 dark:text-white">Held By:</span>{" "}
-                  {(item as any).currentHolder}
-                </li>
-              )}
-            </ul>
+            {item.additionalDetails && (
+              <div className="pt-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">
+                  <Info size={14} /> Custody / Notes
+                </h3>
+                <p className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                  {item.additionalDetails}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right Column: Location, Reporter, Timeline */}
-        <div className="space-y-6">
-          {/* Location & Time */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <MapPin size={18} /> Location & Time
-            </h3>
-            <div className="space-y-4">
+        {/* Right Column: Time/Location, Reporter Info, Action Workflows */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+          {/* Time & Location Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <MapPin size={15} className="text-blue-600" /> Incident Location & Time
+              </h3>
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${item.latitude || 18.0675},${item.longitude || 83.4336}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                <Navigation size={12} /> Directions
+              </a>
+            </div>
+
+            <div className="space-y-3 text-xs">
               <div className="flex items-start gap-3">
-                <div className="mt-1 bg-red-100 dark:bg-red-950/50 p-2 rounded-lg text-red-600 dark:text-red-400">
+                <div className="mt-0.5 p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shrink-0">
                   <MapPin size={16} />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {type === "lost"
-                      ? (item as LostItem).locationLost
-                      : (item as FoundItem).locationFound}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {[
-                       (item as any).building,
-                       (item as any).room,
-                       (item as any).floor,
-                    ]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </p>
+                  <span className="text-slate-400 block font-medium">Reported Location</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">
+                    {item.locationName || itemLocation}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5 font-medium">
+                    Approximate campus location · MVGR College
+                  </span>
                 </div>
               </div>
+
               <div className="flex items-start gap-3">
-                <div className="mt-1 bg-blue-100 dark:bg-blue-950/50 p-2 rounded-lg text-blue-600 dark:text-blue-400">
+                <div className="mt-0.5 p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shrink-0">
                   <Calendar size={16} />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {type === "lost"
-                      ? (item as LostItem).dateLost
-                      : (item as FoundItem).dateFound}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {type === "lost"
-                      ? (item as LostItem).timeLost
-                      : (item as FoundItem).timeFound}
-                  </p>
+                  <span className="text-slate-400 block font-medium">Date & Time</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">
+                    {itemDate} {itemTime ? `• ${itemTime}` : ""}
+                  </span>
                 </div>
+              </div>
+
+              {/* Compact Map Preview (Prompt Section 17) */}
+              <div className="pt-2">
+                <CampusMap
+                  singleItem={item}
+                  height="220px"
+                  showControls={false}
+                  showLegend={false}
+                  showMeetingPoints={false}
+                  showCampusBlocks={true}
+                  zoom={17}
+                  center={{
+                    lat: item.latitude || 18.0675,
+                    lng: item.longitude || 83.4336,
+                  }}
+                />
               </div>
             </div>
           </div>
 
-          {/* Reporter Info */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <User size={18} /> Reporter Info
+          {/* Reporter & Verified Custody Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <User size={15} className="text-teal-600" /> Reporter Details
             </h3>
-            <div className="flex items-center gap-4">
-              <img
-                src={
-                  item.userPhotoURL || "https://ui-avatars.com/api/?name=User"
-                }
-                alt={item.userName}
-                className="w-12 h-12 rounded-full border border-gray-200 dark:border-gray-700"
-              />
-              <div>
-                <p className="font-bold text-gray-900 dark:text-white">{item.userName}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Student</p>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold text-lg border border-teal-200 dark:border-teal-800 shrink-0">
+                {(item.userName || "U").charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                  {item.userName || "Campus Member"}
+                </p>
+                <p className="text-xs text-slate-400">Verified Campus Account</p>
               </div>
             </div>
-            {!isOwner && (
-              <button className="w-full mt-4 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-700 transition cursor-pointer">
-                <MessageSquare size={18} /> Contact Reporter
+
+            {/* Reporter Contact Toggle */}
+            {isOwner ? (
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-2xl text-xs text-blue-800 dark:text-blue-300 font-medium">
+                You are the registered reporter of this item.
+              </div>
+            ) : showContact ? (
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800 text-xs space-y-2.5">
+                <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200/60 dark:border-emerald-800/60">
+                  <span className="font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1">
+                    <UserCheck size={14} /> Direct Contacts
+                  </span>
+                  <button
+                    onClick={() => setShowContact(false)}
+                    className="text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                  >
+                    Hide
+                  </button>
+                </div>
+                <p>
+                  <strong>Email:</strong>{" "}
+                  <a
+                    href={`mailto:${item.userEmail}`}
+                    className="text-blue-600 hover:underline font-semibold"
+                  >
+                    {item.userEmail || "finder@campus.edu"}
+                  </a>
+                </p>
+                {item.userMobile && (
+                  <p>
+                    <strong>Mobile:</strong>{" "}
+                    <a
+                      href={`tel:${item.userMobile}`}
+                      className="text-blue-600 hover:underline font-semibold"
+                    >
+                      {item.userMobile}
+                    </a>
+                  </p>
+                )}
+                <div className="pt-2">
+                  <a
+                    href={`mailto:${item.userEmail}?subject=CampusRecover%20Regarding%20${encodeURIComponent(refCode)}`}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-center font-bold text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <Mail size={14} /> Send Email Directly
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowContact(true)}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-sm shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Mail size={15} /> Reveal Reporter Contacts
               </button>
             )}
           </div>
 
-          {/* Timeline */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Clock size={18} /> Activity Timeline
-            </h3>
-            <div className="relative border-l border-gray-200 dark:border-gray-800 ml-3 space-y-6">
-              {logs.map((log) => (
-                <div key={log.id} className="relative pl-6">
-                  <span className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-white dark:ring-gray-900" />
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {log.action.toUpperCase()}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{log.details}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                    {log.createdAt
-                      ? formatTimeAgo(log.createdAt.toDate())
-                      : "Just now"}
-                  </p>
-                </div>
-              ))}
-              {logs.length === 0 && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 pl-6">
-                  No activity recorded yet.
-                </p>
-              )}
-            </div>
-          </div>
+          {/* Action Workflows: Handover & AI Match */}
+          <div className="space-y-3">
+            <Link
+              to={`/dashboard/ai-match?ref=${refCode}`}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+            >
+              <Sparkles size={16} /> Scan Potential AI Matches
+            </Link>
 
-          {/* AI Matches */}
-          {matches.length > 0 && (
-            <div className="bg-gradient-to-r from-indigo-50 dark:from-indigo-950/40 to-purple-50 dark:to-purple-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 p-6 shadow-sm">
-              <h3 className="font-bold text-indigo-900 dark:text-indigo-200 mb-2 flex items-center gap-2">
-                <ShieldCheck size={18} /> AI Suggestions
-              </h3>
-              <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-4">
-                We found {matches.length} potential matches for this item!
-              </p>
-              <button
-                onClick={() => navigate("/dashboard/ai-match")}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition cursor-pointer"
-              >
-                Review Matches
-              </button>
-            </div>
-          )}
+            <Link
+              to={`/dashboard/scan-qr?${isLost ? "lostId=" + item.id + "&lostRef=" + refCode : "foundId=" + item.id + "&foundRef=" + refCode}`}
+              className="w-full py-3.5 bg-slate-900 hover:bg-black dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+            >
+              <KeyRound size={16} /> Handover Verification (OTP / QR)
+            </Link>
+          </div>
         </div>
       </div>
-
-      {/* Recommendations */}
-      {recommendations.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Similar Items You Might Be Looking For
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {recommendations.map((rec) => (
-              <div
-                key={rec.id}
-                onClick={() =>
-                  navigate(
-                    `/dashboard/item/${
-                      type === "lost" ? "found" : "lost"
-                    }/${rec.id}`,
-                  )
-                }
-                className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition"
-              >
-                <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-800 relative">
-                  {rec.imageUrls?.[0] ? (
-                    <img
-                      src={rec.imageUrls[0]}
-                      alt={rec.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
-                      <ImageIcon size={32} />
-                    </div>
-                  )}
-                  <div className="absolute top-2 right-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-gray-700 dark:text-gray-300 border border-gray-200/50 dark:border-gray-700/50">
-                    {type === "lost" ? "Found" : "Lost"}
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-gray-900 dark:text-white line-clamp-1">
-                    {rec.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                    <MapPin size={12} />{" "}
-                    {(rec as any).locationFound || (rec as any).locationLost}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -21,6 +21,10 @@ export interface Item {
   location: string
   locationLost?: string // backward compatibility alias
   locationFound?: string // backward compatibility alias
+  locationName?: string // Specific campus block/location name
+  campusLocationId?: string // Optional campus location reference ID
+  latitude?: number
+  longitude?: number
   date: string
   dateLost?: string // backward compatibility alias
   dateFound?: string // backward compatibility alias

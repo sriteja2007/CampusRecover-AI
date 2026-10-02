@@ -20,6 +20,7 @@ import {
   Smartphone,
   Volume2,
   Check,
+  Sparkles,
 } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 import {
@@ -28,43 +29,7 @@ import {
   NotificationPreferences,
 } from "../services/firebase/notification.service"
 import { PushNotificationService } from "../services/push.service"
-import { EmailService } from "../services/email.service"
-
-const ICON_MAP: Record<string, any> = {
-  brain: Brain,
-  message: MessageCircle,
-  status: Package,
-  match: Brain,
-  fraud: ShieldAlert,
-  claim: QrCode,
-  system: Bell,
-}
-
-interface NotificationColorStyle {
-  color: string
-  bg: string
-}
-
-const COLOR_MAP: Record<string, NotificationColorStyle> = {
-  match: { color: "#7c3aed", bg: "rgba(124,58,237,0.1)" },
-  message: { color: "#2563eb", bg: "rgba(37,99,235,0.1)" },
-  status: { color: "#0d9488", bg: "rgba(13,148,136,0.1)" },
-  system: { color: "#475569", bg: "rgba(71,85,105,0.1)" },
-  fraud: { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
-  claim: { color: "#2563eb", bg: "rgba(37,99,235,0.08)" },
-}
-
-function formatTimeAgo(timestamp: any): string {
-  if (!timestamp?.toDate) return ""
-  const diff = Date.now() - timestamp.toDate().getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d ago`
-  return timestamp.toDate().toLocaleDateString()
-}
+import { Badge } from "../components/ui/Badge"
 
 export default function Notifications() {
   const { user } = useAuth()
@@ -114,9 +79,9 @@ export default function Notifications() {
     if (granted) {
       showToast("success", "Browser Push Notifications enabled!")
       PushNotificationService.sendNotification(
-        "CampusRecover Notifications Enabled",
+        "CampusRecover Notifications Active",
         {
-          body: "You will now receive alerts for AI matches, chats, and claims in real-time.",
+          body: "You will now receive alerts for AI matches, custody handovers, and claims.",
         },
       )
       if (user && prefs) {
@@ -180,15 +145,15 @@ export default function Notifications() {
   const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
-    <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
+    <div className="max-w-4xl mx-auto px-4 py-8">
       {toast && (
         <div
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl text-sm font-semibold transition-all ${
+          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-xs font-bold transition-all ${
             toast.type === "success"
               ? "bg-emerald-600 text-white"
               : toast.type === "error"
-                ? "bg-red-600 text-white"
-                : "bg-blue-600 text-white"
+              ? "bg-rose-600 text-white"
+              : "bg-blue-600 text-white"
           }`}
         >
           {toast.type === "success" ? (
@@ -201,14 +166,17 @@ export default function Notifications() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Notifications
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider mb-2">
+            <Bell size={14} />
+            <span>Activity Feed</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            Notification Center
           </h1>
-          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {unreadCount} unread alert{unreadCount !== 1 ? "s" : ""} across
-            In-App, Push, and Email channels
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            {unreadCount} unread alert{unreadCount !== 1 ? "s" : ""} across AI matches, handover confirmations, and system alerts.
           </p>
         </div>
 
@@ -216,24 +184,24 @@ export default function Notifications() {
           <button
             onClick={markAllRead}
             disabled={unreadCount === 0}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-xs"
           >
             <CheckCircle2 size={14} /> Mark all read
           </button>
           <button
             onClick={deleteAllRead}
             title="Clear read notifications"
-            className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
           >
             <Trash2 size={16} />
           </button>
           <button
             onClick={() => setShowPrefs(!showPrefs)}
             title="Notification Settings"
-            className={`p-2 rounded-xl border transition-colors ${
+            className={`p-2.5 rounded-xl border transition-colors cursor-pointer shadow-xs ${
               showPrefs
                 ? "bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400"
-                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
             }`}
           >
             <Settings size={16} />
@@ -241,123 +209,60 @@ export default function Notifications() {
         </div>
       </div>
 
-      {/* Push Notification Banner */}
-      {pushPermission !== "granted" && (
-        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-blue-50 dark:from-blue-950/40 to-indigo-50 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0">
-              <BellRing size={20} />
-            </div>
-            <div>
-              <div className="text-sm font-bold text-blue-900 dark:text-blue-200">
-                Enable Web Push Notifications
-              </div>
-              <div className="text-xs text-blue-700 dark:text-blue-300">
-                Get notified instantly when AI pairs your lost item or sends
-                chat messages.
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={requestPush}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex-shrink-0 cursor-pointer"
-          >
-            Enable Push
-          </button>
-        </div>
-      )}
-
-      {/* Preferences Panel */}
+      {/* Preferences Drawer / Accordion */}
       {showPrefs && prefs && (
-        <div className="mb-6 p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Settings size={16} className="text-blue-600 dark:text-blue-400" />
-              Notification Delivery Channels & Preferences
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+              Notification Delivery Channels
             </h3>
             <button
               onClick={() => setShowPrefs(false)}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className="text-xs text-slate-400 hover:text-slate-600"
             >
-              <X size={16} />
+              Close
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <label className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 cursor-pointer">
-              <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                <Smartphone size={14} className="text-blue-600 dark:text-blue-400" /> In-App Alerts
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <label className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 cursor-pointer">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                In-App Alerts
               </span>
               <input
                 type="checkbox"
                 checked={prefs.inAppEnabled}
                 onChange={(e) => updatePref("inAppEnabled", e.target.checked)}
-                className="accent-blue-600 w-4 h-4 cursor-pointer"
+                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
             </label>
 
-            <label className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 cursor-pointer">
-              <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                <BellRing size={14} className="text-purple-600 dark:text-purple-400" /> Web Push
-              </span>
-              <input
-                type="checkbox"
-                checked={prefs.pushEnabled}
-                onChange={(e) => updatePref("pushEnabled", e.target.checked)}
-                className="accent-blue-600 w-4 h-4 cursor-pointer"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 cursor-pointer">
-              <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                <Mail size={14} className="text-teal-600 dark:text-teal-400" /> Email Digest
+            <label className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 cursor-pointer">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Email Digests
               </span>
               <input
                 type="checkbox"
                 checked={prefs.emailEnabled}
                 onChange={(e) => updatePref("emailEnabled", e.target.checked)}
-                className="accent-blue-600 w-4 h-4 cursor-pointer"
+                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
             </label>
-          </div>
 
-          <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">
-              Notification Types
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {[
-                { key: "matchAlerts", label: "AI Match Suggestions" },
-                { key: "messageAlerts", label: "Real-time Chat Messages" },
-                { key: "statusUpdates", label: "Claim & Verification Updates" },
-                {
-                  key: "systemAlerts",
-                  label: "Campus Security & System Alerts",
-                },
-                { key: "fraudAlerts", label: "Fraud Risk Warnings" },
-              ].map(({ key, label }) => (
-                <label
-                  key={key}
-                  className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/60 cursor-pointer"
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Push Notifications
+              </span>
+              {pushPermission === "granted" ? (
+                <span className="text-xs font-bold text-emerald-600">Enabled</span>
+              ) : (
+                <button
+                  onClick={requestPush}
+                  className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-[11px] font-bold"
                 >
-                  <span className="text-xs text-gray-800 dark:text-gray-200 font-medium">
-                    {label}
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={
-                      prefs[(key as keyof NotificationPreferences)] as boolean
-                    }
-                    onChange={(e) =>
-                      updatePref(
-                        key as keyof NotificationPreferences,
-                        e.target.checked,
-                      )
-                    }
-                    className="accent-blue-600 w-4 h-4 cursor-pointer"
-                  />
-                </label>
-              ))}
+                  Enable
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -365,97 +270,86 @@ export default function Notifications() {
 
       {/* Notifications List */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 size={30} className="animate-spin text-blue-600 dark:text-blue-400 mb-3" />
-          <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">
-            Loading notifications...
-          </p>
+        <div className="py-24 flex flex-col items-center justify-center text-slate-400 gap-3">
+          <Loader2 className="animate-spin text-blue-600" size={36} />
+          <p className="text-sm font-medium text-slate-500">Checking for campus alerts...</p>
         </div>
       ) : notifications.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center shadow-sm">
-          <Bell size={36} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">
-            No notifications yet
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-800 shadow-sm max-w-md mx-auto">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-4">
+            <Bell size={32} />
+          </div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            All caught up!
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-            You will be alerted here when an AI match is found, someone messages
-            you, or an admin approves your claim.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-6 leading-relaxed">
+            You don't have any notifications at the moment. As soon as an AI match or status update occurs, it will appear here.
           </p>
+          <Link
+            to="/dashboard"
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
+          >
+            Go to Dashboard
+          </Link>
         </div>
       ) : (
-        <div className="space-y-2">
-          {notifications.map((n) => {
-            const colors = COLOR_MAP[n.type] || COLOR_MAP.system
-            const IconComp = ICON_MAP[n.icon] || ICON_MAP[n.type] || Bell
-
-            return (
-              <div
-                key={n.id}
-                onClick={() => !n.read && markRead(n.id)}
-                className={`p-4 rounded-2xl border transition-all flex items-start gap-3.5 cursor-pointer relative shadow-xs ${
-                  n.read
-                    ? "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
-                    : "bg-blue-50/50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/60 hover:border-blue-300 dark:hover:border-blue-700"
-                }`}
-              >
-                {!n.read && (
-                  <div className="absolute top-4 left-2 w-2 h-2 rounded-full bg-blue-600" />
+        <div className="space-y-3">
+          {notifications.map((n) => (
+            <div
+              key={n.id}
+              onClick={() => !n.read && markRead(n.id)}
+              className={`p-4 sm:p-5 rounded-2xl border transition-all flex items-start gap-4 cursor-pointer ${
+                n.read
+                  ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  : "bg-blue-50/50 dark:bg-slate-800/80 border-blue-200 dark:border-blue-900/60 shadow-xs"
+              }`}
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                {n.type === "match" ? (
+                  <Sparkles size={18} />
+                ) : n.type === "claim" ? (
+                  <QrCode size={18} />
+                ) : (
+                  <Bell size={18} />
                 )}
-
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: colors.bg }}
-                >
-                  <IconComp size={18} style={{ color: colors.color }} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <h4
-                      className={`text-sm ${
-                        n.read
-                          ? "font-semibold text-gray-800 dark:text-gray-200"
-                          : "font-black text-gray-900 dark:text-white"
-                      }`}
-                    >
-                      {n.title}
-                    </h4>
-                    <span className="text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap flex-shrink-0">
-                      {formatTimeAgo(n.createdAt)}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
-                    {n.body}
-                  </p>
-
-                  <div className="flex items-center justify-between mt-2.5">
-                    {n.actionUrl ? (
-                      <Link
-                        to={n.actionUrl}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-lg transition-colors border border-blue-200/50 dark:border-blue-800/50"
-                      >
-                        View Details <ArrowRight size={12} />
-                      </Link>
-                    ) : (
-                      <div />
-                    )}
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteNotif(n.id)
-                      }}
-                      className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                      title="Delete"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                </div>
               </div>
-            )
-          })}
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate">
+                    {n.title}
+                  </h4>
+                  {!n.read && (
+                    <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+                  )}
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  {n.body || (n as any).message}
+                </p>
+
+                {n.actionUrl && (
+                  <Link
+                    to={n.actionUrl}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline mt-2"
+                  >
+                    <span>View Details</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                )}
+              </div>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  deleteNotif(n.id)
+                }}
+                className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors shrink-0"
+                title="Delete alert"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -94,6 +94,8 @@ export const router = createBrowserRouter([
   { path: "/report-found", element: <Navigate to="/dashboard/report-found" replace /> },
   { path: "/ai-match", element: <Navigate to="/dashboard/ai-match" replace /> },
   { path: "/matches", element: <Navigate to="/dashboard/ai-match" replace /> },
+  { path: "/campus-map", element: <Navigate to="/dashboard/map" replace /> },
+  { path: "/map", element: <Navigate to="/dashboard/map" replace /> },
   { path: "/verify", element: <Navigate to="/dashboard/scan-qr" replace /> },
   {
     path: "/dashboard",
@@ -124,6 +126,7 @@ export const router = createBrowserRouter([
       { path: "my-reports", element: suspenseWrap(ReportHistory) },
       { path: "notifications", element: suspenseWrap(Notifications) },
       { path: "map", element: suspenseWrap(Maps) },
+      { path: "campus-map", element: suspenseWrap(Maps) },
       { path: "messages", element: suspenseWrap(Chat) },
       { path: "ai-match", element: suspenseWrap(AIMatch) },
       { path: "campus-office", element: suspenseWrap(CampusOffice) },

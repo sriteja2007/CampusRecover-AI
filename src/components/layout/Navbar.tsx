@@ -5,6 +5,8 @@ import { LogoMark } from "../ui/Logo"
 import { Button } from "../ui/Button"
 import { ThemeToggle } from "../common/ThemeToggle"
 
+import { useAuth } from "../../context/AuthContext"
+
 const NAV_LINKS = [
   { label: "Home", path: "/" },
   { label: "Features", path: "/features" },
@@ -14,6 +16,7 @@ const NAV_LINKS = [
 ]
 
 export function Navbar() {
+  const { user } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
@@ -63,14 +66,22 @@ export function Navbar() {
 
         <div className="hidden lg:flex items-center gap-3">
           <ThemeToggle />
-          <Link to="/login">
-            <Button variant="ghost" size="sm">
-              Log in
-            </Button>
-          </Link>
-          <Link to="/signup">
-            <Button size="sm">Sign up</Button>
-          </Link>
+          {user ? (
+            <Link to="/dashboard">
+              <Button size="sm">Dashboard</Button>
+            </Link>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="ghost" size="sm">
+                  Log in
+                </Button>
+              </Link>
+              <Link to="/signup">
+                <Button size="sm">Sign up</Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <div className="lg:hidden flex items-center gap-2">

@@ -23,6 +23,8 @@ import { COLLECTIONS } from "../config/constants"
 import { Item, ItemType } from "../types/Item"
 import { SimpleMatchingService } from "./simpleMatching.service"
 import { cleanFirestoreData } from "../utils/firestoreUtils"
+import { CampusLocationService } from "./campusLocation.service"
+import { MVGR_CAMPUS_CENTER } from "../types/CampusLocation"
 
 export interface ItemFilters {
   type?: ItemType | "ALL"
@@ -31,6 +33,20 @@ export interface ItemFilters {
   status?: string
   date?: string
   userId?: string
+  location?: string
+  dateRange?: "all" | "today" | "week" | "older"
+}
+
+export interface LocationAnalytics {
+  location: string
+  lostCount: number
+  foundCount: number
+  recoveredCount: number
+  totalCount: number
+  totalReports: number
+  recoveryRate: number
+  latitude?: number
+  longitude?: number
 }
 
 const LOCAL_ITEMS_CACHE_KEY = "campusrecover_items_cache"
@@ -74,17 +90,37 @@ export const SimpleItemService = {
     const referenceNumber = this.generateReferenceNumber(itemData.type)
     const localId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
 
+    const locationName =
+      itemData.locationName ||
+      itemData.location ||
+      itemData.locationLost ||
+      itemData.locationFound ||
+      "Campus Area"
+
+    let lat = itemData.latitude
+    let lng = itemData.longitude
+    if (lat === undefined || lng === undefined || isNaN(lat) || isNaN(lng)) {
+      const matchBlock = await CampusLocationService.getLocationByName(locationName)
+      if (matchBlock) {
+        lat = matchBlock.latitude
+        lng = matchBlock.longitude
+      } else {
+        lat = MVGR_CAMPUS_CENTER.latitude
+        lng = MVGR_CAMPUS_CENTER.longitude
+      }
+    }
+
     const rawPayload: any = {
       ...itemData,
       referenceNumber,
       itemName: itemData.itemName || itemData.title || "Campus Item",
       title: itemData.itemName || itemData.title || "Campus Item",
       status: itemData.status || "pending",
-      location:
-        itemData.location ||
-        itemData.locationLost ||
-        itemData.locationFound ||
-        "Campus",
+      location: locationName,
+      locationName: locationName,
+      campusLocationId: itemData.campusLocationId || "",
+      latitude: lat,
+      longitude: lng,
       date:
         itemData.date ||
         itemData.dateLost ||
@@ -215,6 +251,37 @@ export const SimpleItemService = {
     if (filters?.status && filters.status !== "all") {
       items = items.filter((it) => it.status === filters.status)
     }
+    if (filters?.location && filters.location !== "all") {
+      const locTerm = filters.location.toLowerCase().trim()
+      items = items.filter(
+        (it) =>
+          it.locationName?.toLowerCase().includes(locTerm) ||
+          it.location?.toLowerCase().includes(locTerm) ||
+          it.campusLocationId === filters.location,
+      )
+    }
+    if (filters?.dateRange && filters.dateRange !== "all") {
+      const now = new Date()
+      const todayStr = now.toISOString().split("T")[0]
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+      items = items.filter((it) => {
+        const itemDateStr = it.date || it.dateLost || it.dateFound || ""
+        if (!itemDateStr) return true
+        if (filters.dateRange === "today") {
+          return itemDateStr === todayStr
+        }
+        const itemDate = new Date(itemDateStr)
+        if (isNaN(itemDate.getTime())) return true
+        if (filters.dateRange === "week") {
+          return itemDate >= sevenDaysAgo
+        }
+        if (filters.dateRange === "older") {
+          return itemDate < sevenDaysAgo
+        }
+        return true
+      })
+    }
 
     // In-memory text search across itemName, description, location, category, color, brand, referenceNumber
     if (filters?.search && filters.search.trim()) {
@@ -227,6 +294,7 @@ export const SimpleItemService = {
           it.description?.toLowerCase().includes(queryTerm) ||
           it.category?.toLowerCase().includes(queryTerm) ||
           it.location?.toLowerCase().includes(queryTerm) ||
+          it.locationName?.toLowerCase().includes(queryTerm) ||
           it.color?.toLowerCase().includes(queryTerm) ||
           it.brand?.toLowerCase().includes(queryTerm)
         )
@@ -300,6 +368,37 @@ export const SimpleItemService = {
           if (filters?.status && filters.status !== "all") {
             items = items.filter((it) => it.status === filters.status)
           }
+          if (filters?.location && filters.location !== "all") {
+            const locTerm = filters.location.toLowerCase().trim()
+            items = items.filter(
+              (it) =>
+                it.locationName?.toLowerCase().includes(locTerm) ||
+                it.location?.toLowerCase().includes(locTerm) ||
+                it.campusLocationId === filters.location,
+            )
+          }
+          if (filters?.dateRange && filters.dateRange !== "all") {
+            const now = new Date()
+            const todayStr = now.toISOString().split("T")[0]
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+            items = items.filter((it) => {
+              const itemDateStr = it.date || it.dateLost || it.dateFound || ""
+              if (!itemDateStr) return true
+              if (filters.dateRange === "today") {
+                return itemDateStr === todayStr
+              }
+              const itemDate = new Date(itemDateStr)
+              if (isNaN(itemDate.getTime())) return true
+              if (filters.dateRange === "week") {
+                return itemDate >= sevenDaysAgo
+              }
+              if (filters.dateRange === "older") {
+                return itemDate < sevenDaysAgo
+              }
+              return true
+            })
+          }
           if (filters?.search && filters.search.trim()) {
             const s = filters.search.toLowerCase().trim()
             items = items.filter(
@@ -308,6 +407,7 @@ export const SimpleItemService = {
                 it.itemName?.toLowerCase().includes(s) ||
                 it.description?.toLowerCase().includes(s) ||
                 it.location?.toLowerCase().includes(s) ||
+                it.locationName?.toLowerCase().includes(s) ||
                 it.category?.toLowerCase().includes(s),
             )
           }
@@ -425,6 +525,77 @@ export const SimpleItemService = {
       await deleteDoc(doc(db, COLLECTIONS.ITEMS, id))
     } catch (err) {
       console.warn("deleteItem Firestore notice:", err)
+    }
+  },
+
+  /**
+   * Real database aggregation of items by campus location
+   * Computes lost, found, and recovered statistics for hotspots and dashboard summary
+   */
+  async getLocationAnalytics(): Promise<{
+    analytics: LocationAnalytics[]
+    totalReports: number
+    totalLost: number
+    totalFound: number
+    totalRecovered: number
+    recoveryRate: number
+  }> {
+    const items = await this.getItems()
+    const locMap = new Map<string, LocationAnalytics>()
+
+    let totalLost = 0
+    let totalFound = 0
+    let totalRecovered = 0
+
+    for (const it of items) {
+      const loc = (it.locationName || it.location || "Campus Area").trim()
+      if (it.type === "LOST") totalLost++
+      if (it.type === "FOUND") totalFound++
+      if (it.status === "recovered") totalRecovered++
+
+      if (!locMap.has(loc)) {
+        locMap.set(loc, {
+          location: loc,
+          lostCount: 0,
+          foundCount: 0,
+          recoveredCount: 0,
+          totalCount: 0,
+          totalReports: 0,
+          recoveryRate: 0,
+          latitude: it.latitude,
+          longitude: it.longitude,
+        })
+      }
+
+      const entry = locMap.get(loc)!
+      entry.totalCount++
+      entry.totalReports = entry.totalCount
+      if (it.type === "LOST") entry.lostCount++
+      if (it.type === "FOUND") entry.foundCount++
+      if (it.status === "recovered" || (it.status as string) === "CLAIMED") entry.recoveredCount++
+      entry.recoveryRate =
+        entry.totalCount > 0
+          ? Math.round((entry.recoveredCount / entry.totalCount) * 100)
+          : 0
+      if (!entry.latitude && it.latitude) entry.latitude = it.latitude
+      if (!entry.longitude && it.longitude) entry.longitude = it.longitude
+    }
+
+    const totalReports = items.length
+    const recoveryRate =
+      totalReports > 0 ? Math.round((totalRecovered / totalReports) * 100) : 0
+
+    const analytics = Array.from(locMap.values()).sort(
+      (a, b) => b.totalCount - a.totalCount,
+    )
+
+    return {
+      analytics,
+      totalReports,
+      totalLost,
+      totalFound,
+      totalRecovered,
+      recoveryRate,
     }
   },
 }
