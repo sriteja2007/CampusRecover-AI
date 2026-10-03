@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext"
 const NAV_LINKS = [
   { label: "Browse Items", path: "/items", icon: Search },
   { label: "How It Works", path: "/how-it-works", icon: null },
-  { label: "Safety", path: "/#safety", icon: ShieldCheck },
+  { label: "Safety", path: "/safety", icon: ShieldCheck },
 ]
 
 export function Navbar() {
@@ -71,10 +71,10 @@ export function Navbar() {
                   Dashboard
                 </Button>
               </Link>
-              <Link to="/dashboard/report-lost">
+              <Link to="/report/lost">
                 <Button size="sm" className="gap-1.5 shadow-xs">
                   <PlusCircle size={15} />
-                  Report an Item
+                  Report Lost Item
                 </Button>
               </Link>
             </>
@@ -85,10 +85,10 @@ export function Navbar() {
                   Sign In
                 </Button>
               </Link>
-              <Link to="/login?redirect=/dashboard/report-lost">
+              <Link to="/login?redirect=/report/lost">
                 <Button size="sm" className="gap-1.5 shadow-xs">
                   <PlusCircle size={15} />
-                  Report an Item
+                  Report Lost Item
                 </Button>
               </Link>
             </>
@@ -132,10 +132,10 @@ export function Navbar() {
                     Go to Dashboard
                   </Button>
                 </Link>
-                <Link to="/dashboard/report-lost" onClick={() => setMobileOpen(false)}>
+                <Link to="/report/lost" onClick={() => setMobileOpen(false)}>
                   <Button className="w-full gap-2">
                     <PlusCircle size={16} />
-                    Report an Item
+                    Report Lost Item
                   </Button>
                 </Link>
               </>
@@ -146,10 +146,10 @@ export function Navbar() {
                     Sign In
                   </Button>
                 </Link>
-                <Link to="/login?redirect=/dashboard/report-lost" onClick={() => setMobileOpen(false)}>
+                <Link to="/login?redirect=/report/lost" onClick={() => setMobileOpen(false)}>
                   <Button className="w-full gap-2">
                     <PlusCircle size={16} />
-                    Report an Item
+                    Report Lost Item
                   </Button>
                 </Link>
               </>

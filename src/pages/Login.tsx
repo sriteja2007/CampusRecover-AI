@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link, useNavigate } from "react-router"
+import { Link, useNavigate, useSearchParams } from "react-router"
 import {
   Mail,
   Lock,
@@ -17,6 +17,9 @@ import { LogoMark } from "../components/ui/Logo"
 import { Badge } from "../components/ui/Badge"
 
 export default function Login() {
+  const [searchParams] = useSearchParams()
+  const redirectUrl = searchParams.get("redirect")
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPass, setShowPass] = useState(false)
@@ -27,6 +30,16 @@ export default function Login() {
 
   const { login, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
+
+  const navigateAfterLogin = (userEmail?: string | null) => {
+    if (userEmail?.trim().toLowerCase() === "admin@gmail.com") {
+      navigate("/admin", { replace: true })
+    } else if (redirectUrl) {
+      navigate(redirectUrl, { replace: true })
+    } else {
+      navigate("/dashboard", { replace: true })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,11 +53,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(email, password)
-      if (email.trim().toLowerCase() === "admin@gmail.com") {
-        navigate("/admin", { replace: true })
-      } else {
-        navigate("/dashboard", { replace: true })
-      }
+      navigateAfterLogin(email)
     } catch (err: any) {
       console.error("Login error:", err)
       setError(
@@ -60,11 +69,7 @@ export default function Login() {
     setGoogleLoading(true)
     try {
       const user = await loginWithGoogle()
-      if (user?.email?.toLowerCase() === "admin@gmail.com") {
-        navigate("/admin", { replace: true })
-      } else {
-        navigate("/dashboard", { replace: true })
-      }
+      navigateAfterLogin(user?.email)
     } catch (err: any) {
       console.error("Google sign-in error:", err)
       if (err.code === "auth/popup-closed-by-user") {
@@ -91,11 +96,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(demo.email, demo.pass)
-      if (demo.role === "admin") {
-        navigate("/admin", { replace: true })
-      } else {
-        navigate("/dashboard", { replace: true })
-      }
+      navigateAfterLogin(demo.email)
     } catch (err: any) {
       console.error("Quick login error:", err)
       setError(err.message || `Failed to sign in as ${demo.name}`)
@@ -193,6 +194,15 @@ export default function Login() {
               Access your lost reports, view AI matches, and coordinate handovers.
             </p>
           </div>
+
+          {redirectUrl && (
+            <div className="p-3.5 bg-blue-50 dark:bg-blue-950/60 rounded-2xl border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2.5">
+              <Shield size={16} className="text-blue-600 shrink-0" />
+              <span>
+                Please sign in to proceed to <strong>{redirectUrl.replace(/^\//, "").split("?")[0]}</strong>. You will be redirected immediately.
+              </span>
+            </div>
+          )}
 
           {/* Quick 1-Click Demo Accounts */}
           <div className="bg-slate-100 dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 space-y-2.5">

@@ -226,6 +226,26 @@ export default function ItemDetail() {
     }
   }
 
+  const handleFoundClick = () => {
+    if (!item) return
+    if (!user) {
+      navigate(`/login?redirect=${encodeURIComponent(`/items/${item.id}`)}`)
+    } else {
+      navigate(
+        `/dashboard/report-found?matchLostId=${item.id}&ref=${refCode}&name=${encodeURIComponent(itemTitle)}`,
+      )
+    }
+  }
+
+  const handleClaimClick = () => {
+    if (!item) return
+    if (!user) {
+      navigate(`/login?redirect=${encodeURIComponent(`/items/${item.id}`)}`)
+    } else {
+      setIsClaimModalOpen(true)
+    }
+  }
+
   const handleFlagSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!flagNotes.trim()) {
@@ -592,7 +612,7 @@ export default function ItemDetail() {
               /* FOUND ITEM PRIMARY CTA: "I Think This Is Mine" */
               <div className="space-y-3">
                 <Button
-                  onClick={() => setIsClaimModalOpen(true)}
+                  onClick={handleClaimClick}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold py-3.5 shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <ShieldCheck size={16} /> I Think This Is Mine
@@ -605,14 +625,12 @@ export default function ItemDetail() {
             ) : (
               /* LOST ITEM PRIMARY CTA: "I Found This Item" */
               <div className="space-y-3">
-                <Link
-                  to={`/dashboard/report-found?matchLostId=${item.id}&ref=${refCode}&name=${encodeURIComponent(itemTitle)}`}
-                  className="block"
+                <Button
+                  onClick={handleFoundClick}
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-bold py-3.5 shadow-md shadow-teal-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-bold py-3.5 shadow-md shadow-teal-500/20 flex items-center justify-center gap-2 cursor-pointer">
-                    <CheckCircle2 size={16} /> I Found This Item
-                  </Button>
-                </Link>
+                  <CheckCircle2 size={16} /> I Found This Item
+                </Button>
 
                 <p className="text-[11px] text-slate-500 text-center leading-normal">
                   Found this item on campus? Report it to automatically connect with the owner safely.

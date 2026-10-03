@@ -13,6 +13,7 @@ import { ROLES, ROUTES } from "../config/constants"
 // Lazy-loaded Public Pages
 const LandingPage = lazy(() => import("../pages/LandingPage"))
 const Features = lazy(() => import("../pages/Features"))
+const Safety = lazy(() => import("../pages/Safety"))
 const HowItWorks = lazy(() => import("../pages/HowItWorks"))
 const About = lazy(() => import("../pages/About"))
 const Contact = lazy(() => import("../pages/Contact"))
@@ -68,7 +69,7 @@ export const router = createBrowserRouter([
       { path: "items/:id", element: suspenseWrap(ItemDetail) },
       { path: "browse", element: <Navigate to="/items" replace /> },
       { path: "features", element: suspenseWrap(Features) },
-      { path: "safety", element: suspenseWrap(Features) },
+      { path: "safety", element: suspenseWrap(Safety) },
       { path: "how-it-works", element: suspenseWrap(HowItWorks) },
       { path: "about", element: suspenseWrap(About) },
       { path: "contact", element: suspenseWrap(Contact) },
@@ -120,6 +121,9 @@ export const router = createBrowserRouter([
   { path: "/my-entries", element: <Navigate to="/dashboard/my-reports" replace /> },
   { path: "/report-lost", element: <Navigate to="/dashboard/report-lost" replace /> },
   { path: "/report-found", element: <Navigate to="/dashboard/report-found" replace /> },
+  { path: "/report/lost", element: <Navigate to="/dashboard/report-lost" replace /> },
+  { path: "/report/found", element: <Navigate to="/dashboard/report-found" replace /> },
+  { path: "/report", element: <Navigate to="/dashboard/report-lost" replace /> },
   { path: "/ai-match", element: <Navigate to="/dashboard/ai-match" replace /> },
   { path: "/matches", element: <Navigate to="/dashboard/ai-match" replace /> },
   { path: "/campus-map", element: <Navigate to="/dashboard/map" replace /> },
