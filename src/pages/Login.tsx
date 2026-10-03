@@ -294,11 +294,7 @@ export default function Login() {
                   Password
                 </label>
                 <Link
-                  to="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    alert("For demo accounts, use password prefilled or contact support.")
-                  }}
+                  to="/forgot-password"
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold"
                 >
                   Forgot password?
@@ -391,10 +387,10 @@ export default function Login() {
           <p className="text-center text-xs text-slate-500 dark:text-slate-400">
             Don&apos;t have an account yet?{" "}
             <Link
-              to="/signup"
+              to="/register"
               className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
             >
-              Create student account
+              Create campus account
             </Link>
           </p>
         </div>

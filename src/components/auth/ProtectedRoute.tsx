@@ -20,9 +20,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    // Redirect them to the login page, but save the current location they were
-    // trying to go to when they were redirected.
     return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />
+  }
+
+  // Account Status Guard: Block suspended users
+  if (customUser && (customUser.status === "SUSPENDED" || customUser.status === "suspended" || (customUser as any).isBanned === true)) {
+    return <Navigate to={ROUTES.LOGIN} state={{ suspended: true }} replace />
   }
 
   return <>{children}</>

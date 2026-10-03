@@ -23,10 +23,13 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   }
 
   // Admins and SuperAdmins have access to all routes automatically
+  const userRole = String(customUser.role || "").toLowerCase()
+  const normalizedAllowed = allowedRoles.map((r) => String(r).toLowerCase())
+
   const hasAccess =
-    allowedRoles.includes(customUser.role) ||
-    customUser.role === ROLES.SUPERADMIN ||
-    customUser.role === ROLES.ADMIN
+    normalizedAllowed.includes(userRole) ||
+    userRole === "admin" ||
+    userRole === "superadmin"
 
   if (!hasAccess) {
     return <Navigate to={ROUTES.APP} replace />

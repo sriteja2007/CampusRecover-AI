@@ -81,6 +81,9 @@ export class RateLimiter {
     REPORT_SUBMIT: { maxRequests: 10, windowMs: 60 * 60 * 1000 }, // 10 reports per hr
     AI_MATCH_RUN: { maxRequests: 20, windowMs: 60 * 1000 }, // 20 runs per min
     CHAT_MESSAGE: { maxRequests: 40, windowMs: 60 * 1000 }, // 40 messages per min
+    AUTH_LOGIN: { maxRequests: 5, windowMs: 15 * 60 * 1000 }, // 5 login attempts per 15 min
+    AUTH_REGISTER: { maxRequests: 5, windowMs: 60 * 60 * 1000 }, // 5 registrations per hour
+    PASSWORD_RESET: { maxRequests: 3, windowMs: 30 * 60 * 1000 }, // 3 resets per 30 min
   }
 }
 

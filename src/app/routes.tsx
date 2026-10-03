@@ -17,7 +17,11 @@ const HowItWorks = lazy(() => import("../pages/HowItWorks"))
 const About = lazy(() => import("../pages/About"))
 const Contact = lazy(() => import("../pages/Contact"))
 const Login = lazy(() => import("../pages/Login"))
-const SignUp = lazy(() => import("../pages/SignUp"))
+const Register = lazy(() => import("../pages/Register"))
+const SignUp = lazy(() => import("../pages/Register"))
+const ForgotPassword = lazy(() => import("../pages/ForgotPassword"))
+const ResetPassword = lazy(() => import("../pages/ResetPassword"))
+const VerifyEmail = lazy(() => import("../pages/VerifyEmail"))
 const OTPVerification = lazy(() => import("../pages/OTPVerification"))
 
 // Lazy-loaded SaaS App Pages
@@ -69,12 +73,32 @@ export const router = createBrowserRouter([
       { path: "about", element: suspenseWrap(About) },
       { path: "contact", element: suspenseWrap(Contact) },
       {
-        path: ROUTES.LOGIN,
+        path: "login",
         element: <GuestRoute>{suspenseWrap(Login)}</GuestRoute>,
       },
       {
-        path: ROUTES.SIGNUP,
-        element: <GuestRoute>{suspenseWrap(SignUp)}</GuestRoute>,
+        path: "register",
+        element: <GuestRoute>{suspenseWrap(Register)}</GuestRoute>,
+      },
+      {
+        path: "signup",
+        element: <Navigate to="/register" replace />,
+      },
+      {
+        path: "forgot-password",
+        element: <GuestRoute>{suspenseWrap(ForgotPassword)}</GuestRoute>,
+      },
+      {
+        path: "reset-password/:token",
+        element: <GuestRoute>{suspenseWrap(ResetPassword)}</GuestRoute>,
+      },
+      {
+        path: "reset-password",
+        element: <GuestRoute>{suspenseWrap(ResetPassword)}</GuestRoute>,
+      },
+      {
+        path: "verify-email",
+        element: suspenseWrap(VerifyEmail),
       },
       {
         path: "otp",

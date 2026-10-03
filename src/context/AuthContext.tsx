@@ -8,6 +8,7 @@ import {
   GoogleAuthProvider,
   signOut,
   updateProfile,
+  sendEmailVerification,
 } from "firebase/auth"
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 import { auth, db } from "../config/firebase"
@@ -25,6 +26,7 @@ type AuthContextType = {
     email: string,
     pass: string,
     phone?: string,
+    confirmPass?: string,
   ) => Promise<any>
   logout: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -92,6 +94,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const snap = await getDoc(userDocRef)
       if (snap.exists()) {
         const data = snap.data() as any
+        if (data.status === "SUSPENDED" || data.status === "suspended" || data.isBanned === true) {
+          await signOut(auth).catch(() => {})
+          setUser(null)
+          setCustomUser(null)
+          throw new Error("Your account has been suspended by campus administration. Please contact campus security.")
+        }
         setCustomUser({ uid, ...data } as CustomUser)
         return { uid, ...data } as CustomUser
       } else {
@@ -285,8 +293,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     pass: string,
     phone: string = "",
+    confirmPass?: string,
   ) => {
     setLoading(true)
+    if (confirmPass !== undefined && pass !== confirmPass) {
+      setLoading(false)
+      throw new Error("Passwords do not match. Please re-enter your password.")
+    }
+    if (pass.length < 8) {
+      setLoading(false)
+      throw new Error("Password must be at least 8 characters long.")
+    }
     const normalizedEmail = email.trim().toLowerCase()
     try {
       const userCredential = await createUserWithEmailAndPassword(
@@ -295,6 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pass,
       )
       await updateProfile(userCredential.user, { displayName: name.trim() })
+      await sendEmailVerification(userCredential.user).catch(() => {})
 
       // Create permanent record in 'users' collection
       const userDocRef = doc(db, COLLECTIONS.USERS, userCredential.user.uid)
